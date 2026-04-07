@@ -4,9 +4,10 @@
 
 ### Completed
 - [x] **Phase 0** — Environment setup (2026-04-07)
+- [x] **Phase 1** — Minimal schema (2026-04-07)
 
 ### In Progress
-- [ ] **Phase 1** — Minimal schema
+- [ ] **Phase 2** — Generate types and data access layer
 
 ### Upcoming
 - [ ] Phase 2 — Generate types and data access layer
@@ -31,6 +32,18 @@
 - Created .env.example files for web and scrapers
 - Created README with setup instructions
 - Pushed to GitHub: moinmoin23/arch-directory
+
+### Session 2 — Phase 1: Minimal Schema (2026-04-07)
+- Created migration: `20260407000001_initial_schema.sql`
+- Tables: firms, people, sources, awards, firm_people, award_recipients,
+  entity_aliases, ingest_cursors, enrichment_queue, review_queue
+- ENUMs: sector_type, entity_type, source_type, queue_status, review_status, prestige_tier
+- Extensions: pg_trgm, fuzzystrmatch, unaccent
+- Indexes: GIN trigram on canonical_name + alias_normalized, btree on slug/sector/country/city
+- Auto-update triggers on firms.updated_at and people.updated_at
+- Seed data: 10 firms, 8 people, 4 awards, 3 sources, 6 aliases, 7 firm_people links, 4 award_recipients
+- Verified: `supabase db reset` clean, trigram fuzzy matching works
+- .env.local files configured with local Supabase credentials
 
 ---
 
