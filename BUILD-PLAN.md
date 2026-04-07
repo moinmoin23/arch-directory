@@ -5,16 +5,13 @@
 ### Completed
 - [x] **Phase 0** — Environment setup (2026-04-07)
 - [x] **Phase 1** — Minimal schema (2026-04-07)
-
-### Completed
 - [x] **Phase 2** — Generate types and data access layer (2026-04-07)
+- [x] **Phase 3** — Frontend foundation (2026-04-07)
 
 ### In Progress
-- [ ] **Phase 3** — Frontend foundation
+- [ ] **Phase 4** — Firm and people pages
 
 ### Upcoming
-- [ ] Phase 3 — Frontend foundation
-- [ ] Phase 4 — Firm and people pages
 - [ ] Phase 5 — Awards and source pages
 - [ ] Phase 6 — Ingestion foundation
 - [ ] Phase 7 — First ingestion sources (RSS + OpenAlex)
@@ -59,6 +56,19 @@
 - All queries type-safe with generated Supabase types and enum-typed sector params
 - Added `npm run db:types` script for regenerating types after schema changes
 - `tsc --noEmit` and `next build` both pass clean
+
+### Session 4 — Phase 3: Frontend Foundation (2026-04-07)
+- Root layout with nav (Architecture, Design, Technology, People, Awards) and footer
+- Homepage: hero, live stats from Supabase (10 firms, 8 people, 4 awards), sector cards, explore links
+- Sector pages: /architecture, /design, /technology — each lists firms + notable people
+- /people listing page with PersonCard grid
+- /awards listing page with award cards
+- Reusable components: FirmCard, PersonCard
+- Custom globals.css with CSS custom properties (light/dark)
+- SEO metadata on all pages (title templates, descriptions)
+- All pages server-rendered, verified against live Supabase seed data
+- Removed default Next.js boilerplate SVGs
+- `tsc --noEmit` and `next build` both pass clean (6 routes)
 
 ---
 
