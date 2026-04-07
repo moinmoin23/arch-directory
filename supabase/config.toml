@@ -1,0 +1,19 @@
+# Supabase local development configuration
+# Run `supabase start` to launch the local stack
+# Full config reference: https://supabase.com/docs/guides/cli/config
+
+[project]
+id = "arch-directory"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
