@@ -6,11 +6,13 @@
 - [x] **Phase 0** — Environment setup (2026-04-07)
 - [x] **Phase 1** — Minimal schema (2026-04-07)
 
+### Completed
+- [x] **Phase 2** — Generate types and data access layer (2026-04-07)
+
 ### In Progress
-- [ ] **Phase 2** — Generate types and data access layer
+- [ ] **Phase 3** — Frontend foundation
 
 ### Upcoming
-- [ ] Phase 2 — Generate types and data access layer
 - [ ] Phase 3 — Frontend foundation
 - [ ] Phase 4 — Firm and people pages
 - [ ] Phase 5 — Awards and source pages
@@ -44,6 +46,19 @@
 - Seed data: 10 firms, 8 people, 4 awards, 3 sources, 6 aliases, 7 firm_people links, 4 award_recipients
 - Verified: `supabase db reset` clean, trigram fuzzy matching works
 - .env.local files configured with local Supabase credentials
+
+### Session 3 — Phase 2: Types & Data Access Layer (2026-04-07)
+- Generated TypeScript types from local Supabase via `supabase gen types`
+- Created `supabase-server.ts` and `supabase-browser.ts` clients
+- Query layer in `lib/queries/`:
+  - `firms.ts`: getFirmBySlug, listFirmsBySector, listFirmsByCountry, listFirmsBySectorAndCountry, getFirmAliases, getFirmAwards, countFirmsBySector
+  - `people.ts`: getPersonBySlug, listPeople, listPeopleByRole, listPeopleBySector, getPersonAwards, getPersonAliases
+  - `awards.ts`: listAwards, getAwardBySlug, listAwardsByOrganization
+  - `sources.ts`: listSources, listSourcesByName, listSourcesBySector
+  - `index.ts`: barrel exports for all queries and types
+- All queries type-safe with generated Supabase types and enum-typed sector params
+- Added `npm run db:types` script for regenerating types after schema changes
+- `tsc --noEmit` and `next build` both pass clean
 
 ---
 
