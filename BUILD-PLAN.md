@@ -8,11 +8,12 @@
 - [x] **Phase 2** — Generate types and data access layer (2026-04-07)
 - [x] **Phase 3** — Frontend foundation (2026-04-07)
 
+- [x] **Phase 4** — Firm and people detail pages (2026-04-07)
+
 ### In Progress
-- [ ] **Phase 4** — Firm and people pages
+- [ ] **Phase 5** — Awards and source pages (partially done — award detail shipped in Phase 4)
 
 ### Upcoming
-- [ ] Phase 5 — Awards and source pages
 - [ ] Phase 6 — Ingestion foundation
 - [ ] Phase 7 — First ingestion sources (RSS + OpenAlex)
 - [ ] Phase 8 — Manual review lane
@@ -69,6 +70,19 @@
 - All pages server-rendered, verified against live Supabase seed data
 - Removed default Next.js boilerplate SVGs
 - `tsc --noEmit` and `next build` both pass clean (6 routes)
+
+### Session 5 — Phase 4: Entity Detail Pages (2026-04-07)
+- Firm detail: `/[sector]/firms/[slug]` — full page with description, location, website,
+  key people, awards, aliases, Schema.org Organization JSON-LD, thin page noindex detection,
+  merged entity 301 redirect, breadcrumbs
+- Firm listing: `/[sector]/firms` — paginated with country filter via search params
+- Person detail: `/people/[slug]` — bio, firm association (prominent), awards, aliases,
+  Schema.org Person JSON-LD, breadcrumbs
+- Award detail: `/awards/[slug]` — recipients with firm/person links, breadcrumbs
+- `generateStaticParams` on all detail pages — 10 firm, 8 people, 4 award pages pre-rendered
+- `generateMetadata` on all detail pages for dynamic SEO titles/descriptions
+- Verified: JSON-LD renders, people show on firm pages, awards link correctly
+- `tsc --noEmit` and `next build` both pass clean
 
 ---
 
