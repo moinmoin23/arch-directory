@@ -10,11 +10,12 @@
 
 - [x] **Phase 4** — Firm and people detail pages (2026-04-07)
 
+- [x] **Phase 5** — Awards and source pages (2026-04-07)
+
 ### In Progress
-- [ ] **Phase 5** — Awards and source pages (partially done — award detail shipped in Phase 4)
+- [ ] **Phase 6** — Ingestion foundation
 
 ### Upcoming
-- [ ] Phase 6 — Ingestion foundation
 - [ ] Phase 7 — First ingestion sources (RSS + OpenAlex)
 - [ ] Phase 8 — Manual review lane
 - [ ] Phase 9 — Light enrichment
@@ -83,6 +84,14 @@
 - `generateMetadata` on all detail pages for dynamic SEO titles/descriptions
 - Verified: JSON-LD renders, people show on firm pages, awards link correctly
 - `tsc --noEmit` and `next build` both pass clean
+
+### Session 6 — Phase 5: Awards & Sources (2026-04-07)
+- Awards index and detail pages already shipped in Phases 3-4
+- Created reusable `SourceList` component for embedding sources on entity pages
+- `/sources` listing page showing all tracked publications
+- Per playbook: source detail pages deferred as data is still sparse
+- Grouping recipients by year deferred — current data has one recipient per award record
+- `tsc --noEmit` and `next build` clean
 
 ---
 
