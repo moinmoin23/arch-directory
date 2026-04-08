@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://arch-directory.com";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://tektongraph.com";
 
 export default function robots(): MetadataRoute.Robots {
   return {

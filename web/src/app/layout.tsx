@@ -15,17 +15,18 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Arch Directory — Architecture, Design & Technology",
-    template: "%s | Arch Directory",
+    default:
+      "TektonGraph — A trusted map of the people, firms, and technologies shaping the built world",
+    template: "%s | TektonGraph",
   },
   description:
-    "The global directory of architecture firms, design studios, technology labs, and the people behind them.",
+    "A trusted, searchable map of the people, firms, projects, and emerging technologies shaping the built world.",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
   ),
   openGraph: {
     type: "website",
-    siteName: "Arch Directory",
+    siteName: "TektonGraph",
   },
 };
 
@@ -55,7 +56,7 @@ export default function RootLayout({
               href="/"
               className="text-lg font-semibold tracking-tight"
             >
-              Arch Directory
+              Tekton<span className="text-muted">Graph</span>
             </Link>
             <ul className="flex items-center gap-6 text-sm">
               {NAV_LINKS.map((link) => (
@@ -76,7 +77,10 @@ export default function RootLayout({
 
         <footer className="border-t border-border">
           <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-muted">
-            <p>Arch Directory — Architecture, Design & Technology</p>
+            <p>
+              TektonGraph — A trusted, searchable map of the people, firms,
+              projects, and emerging technologies shaping the built world.
+            </p>
           </div>
         </footer>
       </body>

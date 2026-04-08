@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const label = SECTOR_LABELS[sector as Sector];
   return {
     title: label,
-    description: `Browse ${label.toLowerCase()} in the Arch Directory.`,
+    description: `Browse ${label.toLowerCase()} on TektonGraph.`,
   };
 }
 

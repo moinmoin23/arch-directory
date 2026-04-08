@@ -7,7 +7,7 @@ const SECTORS = [
     slug: "architecture",
     title: "Architecture",
     description:
-      "Firms shaping the built environment — from residential to urban-scale projects.",
+      "Firms and practices shaping the built environment — from emerging studios to Pritzker-winning offices.",
   },
   {
     slug: "design",
@@ -19,58 +19,96 @@ const SECTORS = [
     slug: "technology",
     title: "Technology",
     description:
-      "Labs and companies advancing computational design, fabrication, and building tech.",
+      "Labs, fab labs, and companies advancing computational design, digital fabrication, and building tech.",
   },
 ] as const;
 
 async function getStats() {
   const supabase = createServerClient();
-  const [firmCounts, { count: peopleCount }, { count: awardsCount }] =
+  const [firmCounts, { count: peopleCount }, { count: awardsCount }, { count: sourceCount }] =
     await Promise.all([
       countFirmsBySector(),
       supabase
         .from("people")
-        .select("*", { count: "exact", head: true }),
+        .select("*", { count: "exact", head: true })
+        .eq("publish_status", "published"),
       supabase
         .from("awards")
+        .select("*", { count: "exact", head: true }),
+      supabase
+        .from("sources")
         .select("*", { count: "exact", head: true }),
     ]);
 
   const totalFirms = Object.values(firmCounts).reduce((a, b) => a + b, 0);
-  return { firmCounts, totalFirms, peopleCount: peopleCount ?? 0, awardsCount: awardsCount ?? 0 };
+  return {
+    firmCounts,
+    totalFirms,
+    peopleCount: peopleCount ?? 0,
+    awardsCount: awardsCount ?? 0,
+    sourceCount: sourceCount ?? 0,
+  };
 }
 
 export default async function HomePage() {
-  const { firmCounts, totalFirms, peopleCount, awardsCount } = await getStats();
+  const { firmCounts, totalFirms, peopleCount, awardsCount, sourceCount } =
+    await getStats();
 
   return (
     <div className="mx-auto max-w-6xl px-6">
       {/* Hero */}
       <section className="py-20">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          The global directory of architecture,
+          A trusted, searchable map of the people,
           <br />
-          design &amp; technology
+          firms, and technologies shaping
+          <br />
+          the built world.
         </h1>
-        <p className="mt-4 max-w-2xl text-lg text-muted">
-          A structured, source-backed reference covering firms, studios, labs,
-          and the people behind them.
+        <p className="mt-6 max-w-2xl text-lg text-muted">
+          TektonGraph connects architecture, design, and technology — from
+          computational design researchers and digital fabrication labs to
+          award-winning practices and the tools they build.
         </p>
+        <div className="mt-8 flex gap-3">
+          <Link
+            href="/search"
+            className="border border-foreground bg-foreground px-5 py-2.5 text-sm text-background transition-colors hover:bg-transparent hover:text-foreground"
+          >
+            Search the directory
+          </Link>
+          <Link
+            href="/firms/country"
+            className="border border-border px-5 py-2.5 text-sm transition-colors hover:border-foreground"
+          >
+            Browse by country
+          </Link>
+        </div>
       </section>
 
       {/* Stats */}
-      <section className="grid grid-cols-3 gap-8 border-y border-border py-8">
+      <section className="grid grid-cols-2 gap-8 border-y border-border py-8 sm:grid-cols-4">
         <div>
-          <p className="text-3xl font-semibold">{totalFirms}</p>
-          <p className="text-sm text-muted">Firms &amp; Studios</p>
+          <p className="text-3xl font-semibold">
+            {totalFirms.toLocaleString()}
+          </p>
+          <p className="text-sm text-muted">Firms &amp; Labs</p>
         </div>
         <div>
-          <p className="text-3xl font-semibold">{peopleCount}</p>
+          <p className="text-3xl font-semibold">
+            {peopleCount.toLocaleString()}
+          </p>
           <p className="text-sm text-muted">People</p>
         </div>
         <div>
           <p className="text-3xl font-semibold">{awardsCount}</p>
           <p className="text-sm text-muted">Awards</p>
+        </div>
+        <div>
+          <p className="text-3xl font-semibold">
+            {sourceCount.toLocaleString()}
+          </p>
+          <p className="text-sm text-muted">Sources</p>
         </div>
       </section>
 
@@ -103,10 +141,11 @@ export default async function HomePage() {
         <div className="flex flex-wrap gap-3">
           {[
             { href: "/people", label: "All People" },
+            { href: "/people/role", label: "People by Role" },
+            { href: "/firms/country", label: "Firms by Country" },
             { href: "/awards", label: "Awards" },
-            { href: "/architecture?country=Netherlands", label: "Firms in Netherlands" },
-            { href: "/architecture?country=United+Kingdom", label: "Firms in UK" },
             { href: "/technology", label: "Technology Labs" },
+            { href: "/sources", label: "Sources & Publications" },
           ].map((link) => (
             <Link
               key={link.href}

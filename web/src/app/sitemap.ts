@@ -4,7 +4,7 @@ import { getCountriesWithCounts } from "@/lib/queries/firms";
 import { getRolesWithCounts } from "@/lib/queries/people";
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://arch-directory.com";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://tektongraph.com";
 
 function roleSlug(role: string) {
   return role.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");

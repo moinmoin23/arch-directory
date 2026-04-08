@@ -9,7 +9,7 @@ const PER_PAGE = 36;
 export const metadata: Metadata = {
   title: "Sources & Publications",
   description:
-    "Articles, publications, and press coverage tracked by the Arch Directory.",
+    "Articles, publications, and press coverage tracked by TektonGraph.",
 };
 
 export default async function SourcesPage({

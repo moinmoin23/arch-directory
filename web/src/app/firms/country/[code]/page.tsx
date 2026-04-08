@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const name = countryName(code);
   return {
     title: `Architecture, Design & Technology Firms in ${name}`,
-    description: `Browse firms, studios, and labs in ${name}. Part of the Arch Directory — the global directory of architecture, design, and technology.`,
+    description: `Browse firms, studios, and labs in ${name}. Part of TektonGraph — a trusted map of the people, firms, and technologies shaping the built world.`,
   };
 }
 

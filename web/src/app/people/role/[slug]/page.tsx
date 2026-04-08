@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `${name}s in Architecture, Design & Technology`,
-    description: `Browse ${name.toLowerCase()}s working in architecture, design, and technology. Part of the Arch Directory.`,
+    description: `Browse ${name.toLowerCase()}s working in architecture, design, and technology. Part of TektonGraph.`,
   };
 }
 
