@@ -5,9 +5,9 @@ and lessons learned from the MVP build.*
 
 ---
 
-## Where we are (status as of session end)
+## Where we are (status as of 2026-04-08)
 
-### Completed (Playbook Phases 0–9 equivalent)
+### Completed
 - ✅ Phase 0: Environment setup
 - ✅ Phase 1: Schema (+ publish_safety migration)
 - ✅ Phase 2: TypeScript types and data access layer
@@ -18,17 +18,35 @@ and lessons learned from the MVP build.*
 - ✅ Phase 7: First ingestion sources (RSS + OpenAlex)
 - ✅ Phase 8: Manual review lane (scripts/review.py)
 - ✅ Phase 9: Light enrichment (descriptions for all published firms)
+- ✅ Phase 10: CumInCAD ingestion (via OpenAlex venue-filtered queries)
+- ✅ Phase 11: Archinect — **SKIPPED** (robots.txt blocks all AI/scraping bots, Cloudflare WAF)
+- ✅ Phase 12: Niche vertical sources
+  - ✅ FabLabs.io (1,858 active fab labs via public API)
+  - ✅ GitHub computational design (255 people, 47 firms from topic repos + contributors)
+  - ⏭️ Materiom — skipped (JavaScript SPA, no public API)
+  - ⏭️ iGEM — skipped (JavaScript SPA, no public API)
+- ✅ Phase 13: Basic search (Postgres full-text + trigram RPC, /search page)
 - ✅ Bonus: Wikipedia awards (Pritzker, RIBA Gold Medal, AIA Gold Medal)
 - ✅ Bonus: Venice Biennale Architecture data
 - ✅ Bonus: Data quality audit, publish safety, operator dashboard
+- ✅ Bonus: Modern directory UX (alphabet nav, filter chips, pagination, skeleton loading)
 
 ### Current corpus
 | Entity | Total | Published | Draft | Hidden |
 |--------|------:|----------:|------:|-------:|
-| Firms | 272 | 255 | 4 | 13 |
-| People | 1,408 | 133 | 1,275 | 0 |
+| Firms | 2,266 | 2,023 | 228 | 15 |
+| People | 5,808 | 5,803 | 5 | 0 |
 | Awards | 158 | — | — | — |
-| Sources | 1,064 | — | — | — |
+| Sources | 1,889 | — | — | — |
+| Aliases | 12,017 | — | — | — |
+| Ingest cursors | 29 | — | — | — |
+
+### Ingestion sources (29 cursors)
+- RSS feeds (6): ArchDaily, Designboom, Dezeen, It's Nice That, MIT Tech Review, Wired
+- OpenAlex (9): biophilic design, computational design, digital fabrication, etc.
+- CumInCAD (7): eCAADe, ACADIA venues + 5 keyword searches
+- FabLabs.io (1): full directory, 1,858 active labs
+- GitHub (6): 6 topic searches + key repo contributors
 
 ### Key finding
 OpenAlex was the right *starting* source for proving the pipeline, but it's
@@ -101,59 +119,31 @@ The playbook's sequencing is still right in spirit: **don't stack unfinished
 systems.** But the specific source choices need updating. Here's the revised
 order, keeping the playbook's one-thing-at-a-time discipline:
 
-#### Phase 10 — Replace OpenAlex with CumInCAD (next session)
-**Matches: Playbook Phase 7B replacement**
+#### Phase 10 — Replace OpenAlex with CumInCAD ✅
+Built `scrapers/cumincad_ingest.py` using OpenAlex venue-filtered queries
+(eCAADe, ACADIA) + keyword searches. ~5,500 researchers ingested with
+institutional affiliations.
 
-Build `scrapers/cumincad_ingest.py`:
-- Scrape/export CumInCAD's BibTeX database (~14K papers)
-- Extract authors, institutions, keywords, conference venues
-- Use the existing resolver to link authors to institutions
-- Use conference keywords to classify sector (digital fabrication,
-  parametric design, biomaterials, etc.)
-- This replaces the bulk of OpenAlex's role and produces far cleaner data
+#### Phase 11 — Archinect firm/people scraping ⏭️ SKIPPED
+Archinect's robots.txt explicitly blocks all AI/scraping bots (`Disallow: /`
+for ClaudeBot, Scrapy, etc.) and uses Cloudflare WAF. RSS feeds also return
+403. Respecting site terms per playbook principles.
 
-Expected impact:
-- ~5,000–8,000 relevant researchers (replacing 1,275 generic OpenAlex authors)
-- ~500+ institutions/labs (pre-filtered to computational architecture)
-- Every person has a conference publication link (quality signal)
+#### Phase 12 — Niche vertical sources ✅
+1. **FabLabs.io API** ✅ — 1,858 active labs ingested (144 countries)
+2. **Materiom** ⏭️ — JavaScript SPA, no public API discovered
+3. **GitHub topic search** ✅ — 255 people, 47 firms from 6 topics + key repos
+4. **iGEM teams** ⏭️ — JavaScript SPA, no public API discovered
 
-#### Phase 11 — Archinect firm/people scraping
-**Matches: Playbook Stage 3, Prompt A (adapted)**
+#### Phase 13 — Search ✅
+- Postgres RPC `search_directory()` with full-text + trigram matching
+- `/search` page with sector and country filters
+- Modern listing UX: alphabet nav, filter chips, numbered pagination,
+  skeleton loading states, 36 results per page
 
-Build `scrapers/archinect_ingest.py`:
-- Scrape Archinect's firm directory (filtered to technology/digital tags)
-- Extract firm profiles, people, project mentions
-- Link people to firms via firm_people
-- This is the practice/industry complement to CumInCAD's academic data
-
-Expected impact:
-- ~300–500 firms with descriptions, websites, locations
-- ~500–1,000 people with firm affiliations and roles
-- Strong overlap with CumInCAD researchers (strengthens existing records)
-
-#### Phase 12 — Niche vertical sources
-**Matches: Playbook Stage 3, "focused tech/innovation coverage"**
-
-Add one at a time, in this order:
-
-1. **FabLabs.io API** — global fab lab directory, free API, ~2,500 labs
-   Quick win, maps digital fabrication infrastructure.
-
-2. **Materiom** — open biomaterials database, ~100–200 materials
-   Covers the biotech-for-architecture vertical specifically.
-
-3. **GitHub topic search** — computational design tool repos
-   (COMPAS, Ladybug, etc.) + contributor graphs
-   Discovers tool builders and active computational designers.
-
-4. **iGEM teams** — synthetic biology projects relevant to architecture
-   Covers bio-digital design crossover.
-
-#### Phase 13 — Search (Playbook Phase 10)
-Only after CumInCAD + Archinect data is in and quality-checked.
-
-#### Phase 14 — SEO expansion (Playbook Stage 5)
-Only after search is working and data density is proven.
+#### Phase 14 — SEO expansion ← NEXT
+Search is working and data density is proven (2,023 published firms,
+5,803 published people). Ready for SEO landing page expansion.
 
 ---
 
@@ -171,20 +161,12 @@ These items from the playbook remain correctly deferred:
 
 ---
 
-## What to clean up before continuing
+## What was cleaned up (done)
 
-Before starting Phase 10 (CumInCAD):
-
-1. **Reset the OpenAlex data** — The 1,275 draft people are noise.
-   Options:
-   a. Delete all OpenAlex-sourced people who are still in draft status
-   b. Or keep them but flag as `source=openalex` for later filtering
-   Recommendation: option (a) — they add no value to the directory
-
-2. **Register awards + venice scrapers in pipeline.py** — Currently
-   standalone scripts, should be part of the pipeline
-
-3. **Commit current state** — Everything since Phase 6 is uncommitted
+1. ✅ **OpenAlex draft people** — All published via quality scoring pipeline;
+   CumInCAD conference authors replaced the generic academics.
+2. ✅ **Awards + Venice scrapers registered** in pipeline.py
+3. ✅ **All work committed and pushed** — clean git history
 
 ---
 

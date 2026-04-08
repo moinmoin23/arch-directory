@@ -1202,6 +1202,21 @@ See `docs/REVISED-PLAN.md` for the full analysis.
 The playbook's principles and sequencing remain correct. Only the source
 priorities changed based on what we learned from actual data quality.
 
+### Execution outcome (2026-04-08)
+
+| Source | Status | Result |
+|--------|--------|--------|
+| CumInCAD (via OpenAlex venue queries) | ✅ Done | ~5,500 researchers, 7 cursor streams |
+| Archinect | ⏭️ Skipped | robots.txt blocks all AI/scraping bots |
+| FabLabs.io | ✅ Done | 1,858 active labs from public API |
+| GitHub topics | ✅ Done | 255 people, 47 firms from 6 topics |
+| Materiom | ⏭️ Skipped | SPA with no public API |
+| iGEM | ⏭️ Skipped | SPA with no public API |
+| Search | ✅ Done | Postgres RPC, /search page, modern UX |
+
+Current corpus: 2,023 published firms, 5,803 published people, 1,889 sources.
+Next: Phase 14 (SEO expansion).
+
 ---
 
 ## 32. Closing note
