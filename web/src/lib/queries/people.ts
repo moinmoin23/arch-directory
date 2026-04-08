@@ -121,6 +121,29 @@ export async function listPeopleBySector(
   return { people: data as unknown as PersonWithFirm[], count: count ?? 0 };
 }
 
+export async function getRolesWithCounts(): Promise<
+  { role: string; count: number }[]
+> {
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("people")
+    .select("role")
+    .eq("publish_status", "published");
+
+  if (!data) return [];
+
+  const counts: Record<string, number> = {};
+  for (const row of data) {
+    if (row.role) {
+      counts[row.role] = (counts[row.role] || 0) + 1;
+    }
+  }
+
+  return Object.entries(counts)
+    .map(([role, count]) => ({ role, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 export async function getPersonAwards(personId: string) {
   const supabase = createServerClient();
   const { data } = await supabase

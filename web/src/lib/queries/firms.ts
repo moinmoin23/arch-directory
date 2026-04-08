@@ -124,6 +124,61 @@ export async function getFirmSources(firmId: string) {
   return data ?? [];
 }
 
+export async function listFirmsByCountry2(
+  country: string,
+  {
+    page = 1,
+    perPage = 36,
+    sector,
+  }: { page?: number; perPage?: number; sector?: SectorType } = {}
+) {
+  const supabase = createServerClient();
+  const from = (page - 1) * perPage;
+  const to = from + perPage - 1;
+
+  let query = supabase
+    .from("firms")
+    .select("*", { count: "exact" })
+    .eq("country", country)
+    .eq("publish_status", "published")
+    .is("merged_into", null)
+    .order("display_name")
+    .range(from, to);
+
+  if (sector) {
+    query = query.eq("sector", sector);
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) return { firms: [], count: 0 };
+  return { firms: data as Firm[], count: count ?? 0 };
+}
+
+export async function getCountriesWithCounts(): Promise<
+  { country: string; count: number }[]
+> {
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("firms")
+    .select("country")
+    .eq("publish_status", "published")
+    .is("merged_into", null);
+
+  if (!data) return [];
+
+  const counts: Record<string, number> = {};
+  for (const row of data) {
+    if (row.country) {
+      counts[row.country] = (counts[row.country] || 0) + 1;
+    }
+  }
+
+  return Object.entries(counts)
+    .map(([country, count]) => ({ country, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 export async function countFirmsBySector() {
   const supabase = createServerClient();
   const { data } = await supabase
