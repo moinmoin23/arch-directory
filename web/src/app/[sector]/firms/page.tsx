@@ -5,6 +5,7 @@ import { listFirmsBySector, listFirmsBySectorAndCountry } from "@/lib/queries/fi
 import { FirmCard } from "@/components/FirmCard";
 import { Pagination } from "@/components/Pagination";
 import { FilterChips } from "@/components/FilterChips";
+import { SearchBar } from "@/components/SearchBar";
 import type { Enums } from "@/lib/database.types";
 
 const VALID_SECTORS = ["architecture", "design", "technology"] as const;
@@ -80,6 +81,12 @@ export default async function SectorFirmsPage({ params, searchParams }: Props) {
       <p className="mt-2 text-muted">
         {count.toLocaleString()} results
       </p>
+
+      <SearchBar
+        placeholder={`Search ${label.toLowerCase()}...`}
+        sector={sector}
+        className="mt-6"
+      />
 
       {/* Country filter */}
       <div className="mt-4">

@@ -5,6 +5,7 @@ import { PersonCard } from "@/components/PersonCard";
 import { Pagination } from "@/components/Pagination";
 import { AlphabetNav } from "@/components/AlphabetNav";
 import { FilterChips } from "@/components/FilterChips";
+import { SearchBar } from "@/components/SearchBar";
 import type { Enums } from "@/lib/database.types";
 
 const VALID_SECTORS = ["architecture", "design", "technology", "multidisciplinary"] as const;
@@ -112,6 +113,8 @@ export default async function PeoplePage({
       <p className="mt-2 text-muted">
         {count.toLocaleString()} people in the directory.
       </p>
+
+      <SearchBar placeholder="Search people..." className="mt-6" />
 
       {/* Alphabet navigation */}
       <div className="mt-6">
