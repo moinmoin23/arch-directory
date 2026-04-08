@@ -13,12 +13,8 @@ import logging
 from dataclasses import dataclass
 
 from .db import (
-    add_to_enrichment_queue,
     add_to_review_queue,
     get_client,
-    upsert_alias,
-    upsert_firm,
-    upsert_person,
 )
 from .normalize import generate_aliases, generate_slug, normalize_name
 
@@ -131,39 +127,45 @@ def resolve_entity(
                 match_type="review",
             )
 
-    # --- Step 4: No match — create new entity ---
+    # --- Step 4: No match — create new entity atomically ---
     slug = generate_slug(name)
-    new_data = {
-        "slug": slug,
-        "display_name": name,
-        "canonical_name": normalized,
-        "sector": sector,
+    aliases = [
+        {"alias": a, "alias_normalized": normalize_name(a)}
+        for a in generate_aliases(name)
+    ]
+
+    rpc_params = {
+        "p_entity_type": entity_type,
+        "p_slug": slug,
+        "p_display_name": name,
+        "p_canonical_name": normalized,
+        "p_sector": sector,
+        "p_aliases": aliases,
     }
     if hints:
         if hints.get("country"):
-            new_data["country"] = hints["country"]
+            rpc_params["p_country"] = hints["country"]
         if hints.get("city"):
-            new_data["city"] = hints["city"]
+            rpc_params["p_city"] = hints["city"]
         if entity_type == "firm" and hints.get("website"):
-            new_data["website"] = hints["website"]
+            rpc_params["p_website"] = hints["website"]
 
-    if entity_type == "firm":
-        row = upsert_firm(new_data)
-    else:
-        row = upsert_person(new_data)
-
-    if row is None:
-        logger.error("Failed to create %s: %s", entity_type, name)
+    try:
+        result = client.rpc("upsert_entity_with_aliases", rpc_params).execute()
+        if result.data and isinstance(result.data, dict):
+            entity_id = result.data["id"]
+        elif result.data and isinstance(result.data, list) and result.data:
+            entity_id = result.data[0]["id"] if isinstance(result.data[0], dict) else result.data
+        else:
+            # Supabase may return the JSONB directly as a string or dict
+            entity_id = str(result.data) if result.data else None
+    except Exception:
+        logger.exception("RPC upsert_entity_with_aliases failed for %s: %s", entity_type, name)
         return ResolveResult(entity_id=None, confidence=0.0, match_type="error")
 
-    entity_id = row["id"]
-
-    # Generate and store aliases for the new entity
-    for alias in generate_aliases(name):
-        upsert_alias(entity_id, entity_type, alias, normalize_name(alias))
-
-    # Add to enrichment queue
-    add_to_enrichment_queue(entity_id, entity_type)
+    if entity_id is None:
+        logger.error("Failed to create %s: %s", entity_type, name)
+        return ResolveResult(entity_id=None, confidence=0.0, match_type="error")
 
     logger.info("New %s created: '%s' → %s", entity_type, name, entity_id)
     return ResolveResult(entity_id=entity_id, confidence=0.0, match_type="new")

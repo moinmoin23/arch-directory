@@ -26,6 +26,7 @@ from scrapers.shared.cursors import get_cursor, update_cursor
 from scrapers.shared.db import (
     add_to_enrichment_queue,
     get_client,
+    link_entity_source,
     upsert_alias,
     upsert_person,
     upsert_source,
@@ -160,7 +161,7 @@ def _process_work(work: dict, db_client) -> dict:
     year = work.get("publication_year")
 
     # Upsert source
-    upsert_source({
+    source_row = upsert_source({
         "title": title[:500],
         "source_name": "CumInCAD/OpenAlex",
         "url": url,
@@ -169,6 +170,7 @@ def _process_work(work: dict, db_client) -> dict:
         "source_type": "api",
         "sector": "technology",
     })
+    source_id = source_row["id"] if source_row else None
     stats["source"] = 1
 
     # Process authors with relevant institutional affiliations
@@ -194,6 +196,9 @@ def _process_work(work: dict, db_client) -> dict:
             continue
         stats["people"] += 1
 
+        if source_id:
+            link_entity_source(pid, "person", source_id, "author")
+
         # Link to institution if relevant
         if relevant_inst:
             country = relevant_inst.get("country_code", "")
@@ -203,6 +208,8 @@ def _process_work(work: dict, db_client) -> dict:
             if firm_id:
                 _link_person_firm(db_client, pid, firm_id)
                 stats["firm_links"] += 1
+                if source_id:
+                    link_entity_source(firm_id, "firm", source_id, "author_affiliation")
 
     return stats
 

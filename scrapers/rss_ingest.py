@@ -15,7 +15,7 @@ from time import mktime
 import feedparser
 
 from scrapers.shared.cursors import get_cursor, update_cursor
-from scrapers.shared.db import add_to_enrichment_queue, get_client, upsert_source
+from scrapers.shared.db import add_to_enrichment_queue, get_client, link_entity_source, upsert_source
 
 logger = logging.getLogger(__name__)
 
@@ -161,12 +161,15 @@ def _ingest_feed(
             errors.append(f"Failed to upsert: {link}")
             continue
 
+        source_id = result["id"]
+
         # Try to match a known firm in the title — if found, ensure
         # it's in the enrichment queue (strong signal = name in headline)
         matched_id = _match_firm_in_title(title, known_entities)
         if matched_id:
             logger.debug("Title match: '%s' → %s", title[:60], matched_id)
             add_to_enrichment_queue(matched_id, "firm")
+            link_entity_source(matched_id, "firm", source_id, "subject")
 
     # Update cursor to newest entry
     final_cursor = newest_id or last_cursor or ""

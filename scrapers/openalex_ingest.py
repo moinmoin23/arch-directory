@@ -14,7 +14,7 @@ import time
 import httpx
 
 from scrapers.shared.cursors import get_cursor, update_cursor
-from scrapers.shared.db import upsert_source
+from scrapers.shared.db import link_entity_source, upsert_source
 from scrapers.shared.resolver import resolve_entity
 
 logger = logging.getLogger(__name__)
@@ -188,7 +188,7 @@ def _process_work(work: dict) -> None:
     sector = _classify_sector(topics)
 
     # Upsert the publication as a source
-    upsert_source({
+    source_row = upsert_source({
         "title": title[:500],
         "source_name": "OpenAlex",
         "url": url,
@@ -197,6 +197,7 @@ def _process_work(work: dict) -> None:
         "source_type": "api",
         "sector": sector,
     })
+    source_id = source_row["id"] if source_row else None
 
     # Process institutions (upsert as firms)
     seen_institutions: set[str] = set()
@@ -213,12 +214,14 @@ def _process_work(work: dict) -> None:
             if not _is_relevant_institution(inst_name):
                 continue
 
-            resolve_entity(
+            result = resolve_entity(
                 inst_name,
                 "firm",
                 sector=sector,
                 hints={"country": country} if country else None,
             )
+            if result.entity_id and source_id:
+                link_entity_source(result.entity_id, "firm", source_id, "author_affiliation")
 
     # Process authors — only those affiliated with a relevant institution
     for authorship in work.get("authorships", []):
@@ -236,11 +239,13 @@ def _process_work(work: dict) -> None:
         if not has_relevant:
             continue
 
-        resolve_entity(
+        result = resolve_entity(
             author_name,
             "person",
             sector=sector,
         )
+        if result.entity_id and source_id:
+            link_entity_source(result.entity_id, "person", source_id, "author")
 
 
 def _first_author_name(work: dict) -> str | None:

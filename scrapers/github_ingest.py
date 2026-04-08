@@ -27,6 +27,7 @@ from scrapers.shared.cursors import get_cursor, update_cursor
 from scrapers.shared.db import (
     add_to_enrichment_queue,
     get_client,
+    link_entity_source,
     upsert_alias,
     upsert_person,
     upsert_source,
@@ -245,13 +246,17 @@ def _ingest_topic_repos(http: httpx.Client, topic: str, max_pages: int,
 
             time.sleep(0.5)  # sub-request rate limit
 
+            entity_id = None
+            entity_etype = None
             if owner_type == "User":
-                _process_user(http, login, stats)
+                entity_id = _process_user(http, login, stats)
+                entity_etype = "person"
             elif owner_type == "Organization":
-                _process_org(http, login, stats)
+                entity_id = _process_org(http, login, stats)
+                entity_etype = "firm"
 
             # Store the repo as a source
-            upsert_source({
+            source_row = upsert_source({
                 "title": repo.get("full_name", ""),
                 "source_name": "GitHub",
                 "url": repo.get("html_url", ""),
@@ -260,6 +265,9 @@ def _ingest_topic_repos(http: httpx.Client, topic: str, max_pages: int,
                 "sector": "technology",
             })
             stats["sources"] += 1
+
+            if entity_id and source_row and entity_etype:
+                link_entity_source(entity_id, entity_etype, source_row["id"], "repository_owner")
 
         pages_fetched += 1
         page += 1

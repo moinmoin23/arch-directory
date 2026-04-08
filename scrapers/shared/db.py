@@ -97,27 +97,45 @@ def upsert_alias(
         return None
 
 
-def add_to_enrichment_queue(entity_id: str, entity_type: str) -> None:
-    """Add an entity to the enrichment queue if not already present."""
+def link_entity_source(
+    entity_id: str,
+    entity_type: str,
+    source_id: str,
+    mention_type: str = "mention",
+) -> None:
+    """Link an entity to a source that mentions it. Idempotent via unique constraint."""
     try:
-        existing = (
-            get_client()
-            .table("enrichment_queue")
-            .select("id")
-            .eq("entity_id", entity_id)
-            .eq("entity_type", entity_type)
-            .limit(1)
-            .execute()
-        )
-        if not existing.data:
-            get_client().table("enrichment_queue").insert(
-                {
-                    "entity_id": entity_id,
-                    "entity_type": entity_type,
-                    "status": "pending",
-                }
-            ).execute()
+        get_client().table("entity_sources").upsert(
+            {
+                "entity_id": entity_id,
+                "entity_type": entity_type,
+                "source_id": source_id,
+                "mention_type": mention_type,
+            },
+            on_conflict="entity_id,entity_type,source_id",
+        ).execute()
     except Exception:
+        logger.exception("Failed to link entity %s to source %s", entity_id, source_id)
+
+
+def add_to_enrichment_queue(entity_id: str, entity_type: str) -> None:
+    """Add an entity to the enrichment queue if not already pending/processing.
+
+    Uses the partial unique index idx_enrichment_queue_active to skip
+    duplicates without a separate existence check.
+    """
+    try:
+        get_client().table("enrichment_queue").insert(
+            {
+                "entity_id": entity_id,
+                "entity_type": entity_type,
+                "status": "pending",
+            }
+        ).execute()
+    except Exception as e:
+        # Unique constraint violation from the partial index = already queued
+        if "duplicate key" in str(e) or "23505" in str(e):
+            return
         logger.exception("Failed to enqueue entity %s", entity_id)
 
 
@@ -128,7 +146,11 @@ def add_to_review_queue(
     confidence: float,
     match_type: str,
 ) -> None:
-    """Add an ambiguous match to the review queue."""
+    """Add an ambiguous match to the review queue.
+
+    Uses the partial unique index idx_review_queue_dedup to skip
+    duplicates for the same candidate that's still pending.
+    """
     try:
         get_client().table("review_queue").insert(
             {
@@ -140,5 +162,7 @@ def add_to_review_queue(
                 "status": "pending",
             }
         ).execute()
-    except Exception:
+    except Exception as e:
+        if "duplicate key" in str(e) or "23505" in str(e):
+            return
         logger.exception("Failed to add to review queue: %s", candidate_name)

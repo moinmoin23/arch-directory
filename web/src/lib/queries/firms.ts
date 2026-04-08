@@ -113,15 +113,26 @@ export async function getFirmAwards(firmId: string) {
 }
 
 export async function getFirmSources(firmId: string) {
-  // For now, return all sources — later we'll add entity_sources junction
   const supabase = createServerClient();
-  const { data } = await supabase
-    .from("sources")
-    .select("*")
-    .order("published_at", { ascending: false })
-    .limit(10);
+  // entity_sources table added in migration 20260409000001
+  // After running migrations + `npm run db:types`, remove the type assertion
+  const { data, error } = await (supabase as any)
+    .from("entity_sources")
+    .select("mention_type, sources(*)")
+    .eq("entity_id", firmId)
+    .eq("entity_type", "firm")
+    .order("created_at", { ascending: false })
+    .limit(20);
 
-  return data ?? [];
+  if (error) {
+    console.error("[firms.getFirmSources]", error.message, error.details);
+    return [];
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? [])
+    .map((row: any) => row.sources)
+    .filter((s: any): s is Tables<"sources"> => s !== null);
 }
 
 export async function listFirmsByCountry2(
