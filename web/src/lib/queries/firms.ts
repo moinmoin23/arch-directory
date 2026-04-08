@@ -38,6 +38,7 @@ export async function listFirmsBySector(
     .from("firms")
     .select("*", { count: "exact" })
     .eq("sector", sector)
+    .eq("publish_status", "published")
     .is("merged_into", null)
     .order("display_name")
     .range(from, to);
@@ -58,6 +59,7 @@ export async function listFirmsByCountry(
     .from("firms")
     .select("*", { count: "exact" })
     .eq("country", country)
+    .eq("publish_status", "published")
     .is("merged_into", null)
     .order("display_name")
     .range(from, to);
@@ -80,6 +82,7 @@ export async function listFirmsBySectorAndCountry(
     .select("*", { count: "exact" })
     .eq("sector", sector)
     .eq("country", country)
+    .eq("publish_status", "published")
     .is("merged_into", null)
     .order("display_name")
     .range(from, to);
@@ -126,6 +129,7 @@ export async function countFirmsBySector() {
   const { data } = await supabase
     .from("firms")
     .select("sector", { count: "exact", head: false })
+    .eq("publish_status", "published")
     .is("merged_into", null);
 
   const counts: Record<string, number> = {

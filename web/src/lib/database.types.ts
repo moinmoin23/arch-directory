@@ -224,11 +224,15 @@ export type Database = {
           display_name: string
           founded_year: number | null
           id: string
+          last_seen_at: string | null
           merged_into: string | null
+          publish_status: string
+          quality_score: number
           sector: Database["public"]["Enums"]["sector_type"]
           short_description: string | null
           size_range: string | null
           slug: string
+          source_count: number
           updated_at: string
           website: string | null
         }
@@ -240,11 +244,15 @@ export type Database = {
           display_name: string
           founded_year?: number | null
           id?: string
+          last_seen_at?: string | null
           merged_into?: string | null
+          publish_status?: string
+          quality_score?: number
           sector?: Database["public"]["Enums"]["sector_type"]
           short_description?: string | null
           size_range?: string | null
           slug: string
+          source_count?: number
           updated_at?: string
           website?: string | null
         }
@@ -256,11 +264,15 @@ export type Database = {
           display_name?: string
           founded_year?: number | null
           id?: string
+          last_seen_at?: string | null
           merged_into?: string | null
+          publish_status?: string
+          quality_score?: number
           sector?: Database["public"]["Enums"]["sector_type"]
           short_description?: string | null
           size_range?: string | null
           slug?: string
+          source_count?: number
           updated_at?: string
           website?: string | null
         }
@@ -309,10 +321,14 @@ export type Database = {
           current_firm_id: string | null
           display_name: string
           id: string
+          last_seen_at: string | null
           nationality: string | null
+          publish_status: string
+          quality_score: number
           role: string | null
           sector: Database["public"]["Enums"]["sector_type"]
           slug: string
+          source_count: number
           title: string | null
           updated_at: string
         }
@@ -323,10 +339,14 @@ export type Database = {
           current_firm_id?: string | null
           display_name: string
           id?: string
+          last_seen_at?: string | null
           nationality?: string | null
+          publish_status?: string
+          quality_score?: number
           role?: string | null
           sector?: Database["public"]["Enums"]["sector_type"]
           slug: string
+          source_count?: number
           title?: string | null
           updated_at?: string
         }
@@ -337,10 +357,14 @@ export type Database = {
           current_firm_id?: string | null
           display_name?: string
           id?: string
+          last_seen_at?: string | null
           nationality?: string | null
+          publish_status?: string
+          quality_score?: number
           role?: string | null
           sector?: Database["public"]["Enums"]["sector_type"]
           slug?: string
+          source_count?: number
           title?: string | null
           updated_at?: string
         }

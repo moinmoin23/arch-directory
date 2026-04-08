@@ -1182,6 +1182,28 @@ That cadence gives you the best chance of actually shipping.
 
 ---
 
-## 31. Closing note
+## 31. Source strategy revision (added after MVP build)
+
+After building and auditing the MVP with OpenAlex + RSS, research revealed
+that OpenAlex is the wrong primary source for this directory's niche
+(digital fabrication, biotech for architecture, experimental design).
+See `docs/REVISED-PLAN.md` for the full analysis.
+
+**Key changes to Phases 7 and Stage 3:**
+
+| Role | Before | After |
+|------|--------|-------|
+| Primary research source | OpenAlex | **CumInCAD** (~14K computational architecture papers) |
+| Primary practice source | (none) | **Archinect** (~500-1K relevant firms + people) |
+| Niche verticals | (vague) | **FabLabs.io, Materiom, GitHub, iGEM** |
+| OpenAlex | Primary | Demoted to enrichment/citation layer |
+| ArchDaily / Designboom | Stage 3 | Deferred (low signal for this niche) |
+
+The playbook's principles and sequencing remain correct. Only the source
+priorities changed based on what we learned from actual data quality.
+
+---
+
+## 32. Closing note
 
 The original plan contains a strong long-term vision: a structured, multi-sector directory with ingestion, enrichment, search, and SEO leverage. That vision is worth keeping. The main adjustment is execution order: prove the clean data loop first, then scale the sophistication. fileciteturn7file0

@@ -30,6 +30,7 @@ export async function listPeople(
   const { data, error, count } = await supabase
     .from("people")
     .select("*, firms:current_firm_id(display_name, slug, sector)", { count: "exact" })
+    .eq("publish_status", "published")
     .order("display_name")
     .range(from, to);
 
@@ -48,6 +49,7 @@ export async function listPeopleByRole(
   const { data, error, count } = await supabase
     .from("people")
     .select("*, firms:current_firm_id(display_name, slug, sector)", { count: "exact" })
+    .eq("publish_status", "published")
     .ilike("role", `%${role}%`)
     .order("display_name")
     .range(from, to);
@@ -67,6 +69,7 @@ export async function listPeopleBySector(
   const { data, error, count } = await supabase
     .from("people")
     .select("*, firms:current_firm_id(display_name, slug, sector)", { count: "exact" })
+    .eq("publish_status", "published")
     .eq("sector", sector)
     .order("display_name")
     .range(from, to);

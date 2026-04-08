@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description:
       firm.short_description ||
       `${firm.display_name} is a ${firm.sector} firm${location ? ` based in ${location}` : ""}.`,
-    ...(isThinPage(firm) && {
+    ...((isThinPage(firm) || firm.publish_status !== "published") && {
       robots: { index: false, follow: true },
     }),
   };
@@ -41,6 +41,7 @@ export async function generateStaticParams() {
   const { data } = await supabase
     .from("firms")
     .select("slug, sector")
+    .eq("publish_status", "published")
     .is("merged_into", null);
 
   return (data ?? []).map((firm) => ({
