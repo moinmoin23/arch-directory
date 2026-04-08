@@ -35,6 +35,7 @@ const NAV_LINKS = [
   { href: "/technology", label: "Technology" },
   { href: "/people", label: "People" },
   { href: "/awards", label: "Awards" },
+  { href: "/search", label: "Search" },
 ] as const;
 
 export default function RootLayout({

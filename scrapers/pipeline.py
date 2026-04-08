@@ -38,6 +38,8 @@ SOURCES: dict[str, str] = {
     "awards": "scrapers.awards_ingest",
     "venice": "scrapers.venice_biennale_ingest",
     "cumincad": "scrapers.cumincad_ingest",
+    "fablabs": "scrapers.fablabs_ingest",
+    "github": "scrapers.github_ingest",
 }
 
 

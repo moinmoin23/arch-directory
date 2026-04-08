@@ -461,6 +461,30 @@ export type Database = {
       daitch_mokotoff: { Args: { "": string }; Returns: string[] }
       dmetaphone: { Args: { "": string }; Returns: string }
       dmetaphone_alt: { Args: { "": string }; Returns: string }
+      match_entity_trigram: {
+        Args: { search_name: string; search_type: string; threshold?: number }
+        Returns: { id: string; canonical_name: string; similarity: number }[]
+      }
+      search_directory: {
+        Args: {
+          query: string
+          result_limit?: number
+          sector_filter?: string | null
+          country_filter?: string | null
+        }
+        Returns: {
+          entity_type: string
+          id: string
+          slug: string
+          display_name: string
+          sector: string
+          country: string | null
+          city: string | null
+          short_description: string | null
+          role: string | null
+          rank: number
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       soundex: { Args: { "": string }; Returns: string }
@@ -477,7 +501,7 @@ export type Database = {
         | "design"
         | "technology"
         | "multidisciplinary"
-      source_type: "rss" | "crawl" | "api" | "manual" | "wikipedia"
+      source_type: "rss" | "crawl" | "api" | "manual" | "wikipedia" | "repository"
     }
     CompositeTypes: {
       [_ in never]: never
