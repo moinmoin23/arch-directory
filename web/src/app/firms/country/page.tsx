@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getCountriesWithCounts } from "@/lib/queries/firms";
 
+export const revalidate = 1800;
+
 export const metadata: Metadata = {
   title: "Firms by Country",
   description:

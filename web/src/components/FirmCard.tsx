@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Firm } from "@/lib/queries/firms";
 
@@ -7,11 +8,32 @@ export function FirmCard({ firm }: { firm: Firm }) {
   return (
     <Link
       href={`/${sectorPath}/firms/${firm.slug}`}
-      className="group block border border-border p-5 transition-colors hover:border-foreground"
+      className="group block border border-border transition-colors hover:border-foreground overflow-hidden"
     >
-      <h3 className="font-semibold group-hover:underline">
-        {firm.display_name}
-      </h3>
+      {firm.image_url && (
+        <div className="aspect-[16/9] bg-muted/10 overflow-hidden">
+          <img
+            src={firm.image_url}
+            alt={firm.display_name}
+            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+          />
+        </div>
+      )}
+      <div className="p-5">
+        <div className="flex items-center gap-2">
+          {firm.logo_url && (
+            <img
+              src={firm.logo_url}
+              alt=""
+              width={24}
+              height={24}
+              className="rounded-sm"
+            />
+          )}
+          <h3 className="font-semibold group-hover:underline">
+            {firm.display_name}
+          </h3>
+        </div>
       <p className="mt-1 text-sm text-muted">
         {[firm.city, firm.country].filter(Boolean).join(", ")}
         {firm.founded_year ? ` · Est. ${firm.founded_year}` : ""}
@@ -28,6 +50,7 @@ export function FirmCard({ firm }: { firm: Firm }) {
         {firm.size_range && (
           <span className="text-xs text-muted">{firm.size_range} people</span>
         )}
+        </div>
       </div>
     </Link>
   );

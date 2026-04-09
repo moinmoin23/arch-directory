@@ -29,8 +29,8 @@ export async function searchDirectory(
   const { data, error } = await supabase.rpc("search_directory", {
     query: query.trim(),
     result_limit: limit,
-    sector_filter: sector || null,
-    country_filter: country || null,
+    sector_filter: sector || undefined,
+    country_filter: country || undefined,
   });
 
   if (error || !data) {

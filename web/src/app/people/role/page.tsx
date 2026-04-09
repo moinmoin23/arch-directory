@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getRolesWithCounts } from "@/lib/queries/people";
 
+export const revalidate = 1800;
+
 export const metadata: Metadata = {
   title: "People by Role",
   description:

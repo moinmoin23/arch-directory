@@ -8,6 +8,10 @@ import {
 } from "@/lib/queries/people";
 import { createServerClient } from "@/lib/supabase-server";
 
+export const revalidate = 3600;
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
 type Props = {
   params: Promise<{ slug: string }>;
 };
@@ -17,11 +21,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const person = await getPersonBySlug(slug);
   if (!person) return {};
 
+  const description =
+    person.bio?.slice(0, 160) ||
+    `${person.display_name} — ${person.role || person.sector}`;
+
   return {
     title: person.display_name,
-    description:
-      person.bio?.slice(0, 160) ||
-      `${person.display_name} — ${person.role || person.sector}`,
+    description,
+    openGraph: {
+      title: person.display_name,
+      description,
+      url: `${BASE_URL}/people/${slug}`,
+      type: "profile",
+    },
   };
 }
 
@@ -37,16 +49,32 @@ export default async function PersonDetailPage({ params }: Props) {
 
   if (!person) notFound();
 
-  const [aliases, awards] = await Promise.all([
+  const supabase = createServerClient();
+  const [aliases, awards, educationResult, tagsResult] = await Promise.all([
     getPersonAliases(person.id),
     getPersonAwards(person.id),
+    supabase
+      .from("education")
+      .select("institution_name, degree, field, start_year, end_year")
+      .eq("person_id", person.id)
+      .order("start_year", { ascending: false }),
+    supabase
+      .from("entity_tags")
+      .select("tags(name)")
+      .eq("entity_id", person.id)
+      .eq("entity_type", "person")
+      .limit(10),
   ]);
+  const education = educationResult.data ?? [];
+  const tags = (tagsResult.data ?? [])
+    .map((et: any) => et.tags?.name)
+    .filter(Boolean) as string[];
 
   const firm = person.firms;
   const firmSectorPath =
     firm && firm.sector === "multidisciplinary" ? "technology" : firm?.sector;
 
-  // Schema.org JSON-LD
+  // Schema.org JSON-LD — Person
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -62,6 +90,32 @@ export default async function PersonDetailPage({ params }: Props) {
         ...(firm.website && { url: firm.website }),
       },
     }),
+    ...(awards.length > 0 && {
+      award: awards.map((ar) => {
+        const a = ar.awards as unknown as { award_name: string };
+        return a.award_name;
+      }),
+    }),
+    knowsAbout: person.sector,
+  };
+
+  // Schema.org JSON-LD — BreadcrumbList
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "People",
+        item: `${BASE_URL}/people`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: person.display_name,
+      },
+    ],
   };
 
   return (
@@ -69,6 +123,10 @@ export default async function PersonDetailPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
 
       <div className="mx-auto max-w-4xl px-6 py-12">
@@ -82,16 +140,32 @@ export default async function PersonDetailPage({ params }: Props) {
         </nav>
 
         {/* Header */}
-        <h1 className="text-3xl font-bold tracking-tight">
-          {person.display_name}
-        </h1>
-
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
-          <span className="border border-border px-2 py-0.5">
-            {person.sector}
-          </span>
-          {person.role && <span>{person.role}</span>}
-          {person.nationality && <span>{person.nationality}</span>}
+        <div className="flex items-start gap-6">
+          {person.image_url && (
+            <img
+              src={person.image_url}
+              alt={person.display_name}
+              className="h-24 w-24 rounded-full object-cover flex-shrink-0"
+            />
+          )}
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {person.display_name}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
+              <span className="border border-border px-2 py-0.5">
+                {person.sector}
+              </span>
+              {person.role && <span>{person.role}</span>}
+              {person.nationality && <span>{person.nationality}</span>}
+              {person.birth_year && (
+                <span>
+                  b. {person.birth_year}
+                  {person.death_year ? ` — d. ${person.death_year}` : ""}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         {aliases.length > 0 && (
@@ -116,10 +190,50 @@ export default async function PersonDetailPage({ params }: Props) {
           </section>
         )}
 
+        {/* Tags */}
+        {tags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="border border-border px-2 py-0.5 text-xs text-muted"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Bio */}
         {person.bio && (
           <section className="mt-8">
             <p className="text-base leading-relaxed">{person.bio}</p>
+          </section>
+        )}
+
+        {/* Education */}
+        {education.length > 0 && (
+          <section className="mt-10">
+            <h2 className="text-xl font-semibold mb-4">Education</h2>
+            <ul className="space-y-2">
+              {education.map((edu, i) => (
+                <li key={i} className="flex items-baseline gap-2 text-sm">
+                  {edu.start_year && (
+                    <span className="text-muted">
+                      {edu.start_year}
+                      {edu.end_year ? `–${edu.end_year}` : ""}
+                    </span>
+                  )}
+                  <span>{edu.institution_name}</span>
+                  {edu.degree && (
+                    <span className="text-muted">({edu.degree})</span>
+                  )}
+                  {edu.field && (
+                    <span className="text-muted">— {edu.field}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 

@@ -18,7 +18,10 @@ export async function listSources(
     .order("published_at", { ascending: false })
     .range(from, to);
 
-  if (error) return { sources: [], count: 0 };
+  if (error) {
+    console.error("[sources.listSources]", error.message, error.details);
+    return { sources: [], count: 0 };
+  }
   return { sources: data as Source[], count: count ?? 0 };
 }
 

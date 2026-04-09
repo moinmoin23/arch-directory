@@ -8,6 +8,8 @@ import {
 import { PersonCard } from "@/components/PersonCard";
 import { Pagination } from "@/components/Pagination";
 
+export const revalidate = 1800;
+
 const PER_PAGE = 36;
 
 function roleSlug(role: string) {

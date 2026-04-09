@@ -3,7 +3,7 @@
 Scoring rules for firms (0-100):
   +20  has country
   +15  has city
-  +15  has short_description
+  +15  has short_description (>= 50 chars), +8 if thin (< 50 chars)
   +10  has website
   +10  has founded_year
   +10  has size_range
@@ -13,14 +13,14 @@ Scoring rules for firms (0-100):
 Scoring rules for people (0-100):
   +25  has current_firm_id
   +20  has role or title
-  +15  has bio
+  +15  has bio (>= 50 chars), +8 if thin (< 50 chars)
   +15  has nationality
   +15  has at least 1 alias
   +10  has sector != default
 
 Publish rules:
-  quality >= 30  AND  not irrelevant  →  'published'
-  quality < 30                        →  'draft'
+  quality >= 40  AND  not irrelevant  →  'published'
+  quality < 40                        →  'draft'
   irrelevant keyword match            →  'hidden'
 
 Usage:
@@ -66,8 +66,11 @@ def _score_firm(f: dict, alias_count: int, people_count: int) -> int:
         score += 20
     if f.get("city"):
         score += 15
-    if f.get("short_description"):
+    desc = f.get("short_description") or ""
+    if len(desc) >= 50:
         score += 15
+    elif desc:
+        score += 8
     if f.get("website"):
         score += 10
     if f.get("founded_year"):
@@ -87,8 +90,11 @@ def _score_person(p: dict, alias_count: int) -> int:
         score += 25
     if p.get("role") or p.get("title"):
         score += 20
-    if p.get("bio"):
+    bio = p.get("bio") or ""
+    if len(bio) >= 50:
         score += 15
+    elif bio:
+        score += 8
     if p.get("nationality"):
         score += 15
     if alias_count > 0:
@@ -151,7 +157,7 @@ def compute_firms(client, dry_run: bool):
 
             if _is_irrelevant(f["display_name"]):
                 status = "hidden"
-            elif score >= 30:
+            elif score >= 40:
                 status = "published"
             else:
                 status = "draft"

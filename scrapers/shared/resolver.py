@@ -1,6 +1,7 @@
 """Conservative entity resolution.
 
 Cascade:
+0. Exact match on wikidata_id (if provided)
 1. Exact match on canonical_name
 2. Alias match on entity_aliases.alias_normalized
 3. Trigram similarity > 0.7 on canonical_name
@@ -34,6 +35,7 @@ def resolve_entity(
     *,
     sector: str = "architecture",
     hints: dict | None = None,
+    wikidata_id: str | None = None,
 ) -> ResolveResult:
     """Resolve a name to an existing entity or create a new one.
 
@@ -42,6 +44,7 @@ def resolve_entity(
         entity_type: 'firm' or 'person'.
         sector: Sector for new entities.
         hints: Optional dict with 'country', 'city', 'website' for boosting.
+        wikidata_id: Optional Wikidata QID for deterministic matching.
 
     Returns:
         ResolveResult with entity_id, confidence, and match_type.
@@ -49,6 +52,20 @@ def resolve_entity(
     normalized = normalize_name(name)
     table = "firms" if entity_type == "firm" else "people"
     client = get_client()
+
+    # --- Step 0: Deterministic match on wikidata_id ---
+    if wikidata_id:
+        wk_result = (
+            client.table(table)
+            .select("id")
+            .eq("wikidata_id", wikidata_id)
+            .limit(1)
+            .execute()
+        )
+        if wk_result.data:
+            entity_id = wk_result.data[0]["id"]
+            logger.info("Wikidata match: '%s' (%s) → %s", name, wikidata_id, entity_id)
+            return ResolveResult(entity_id=entity_id, confidence=1.0, match_type="wikidata")
 
     # --- Step 1: Exact match on canonical_name ---
     query = client.table(table).select("id, canonical_name").eq(
@@ -142,6 +159,8 @@ def resolve_entity(
         "p_sector": sector,
         "p_aliases": aliases,
     }
+    if wikidata_id:
+        rpc_params["p_wikidata_id"] = wikidata_id
     if hints:
         if hints.get("country"):
             rpc_params["p_country"] = hints["country"]
@@ -149,6 +168,8 @@ def resolve_entity(
             rpc_params["p_city"] = hints["city"]
         if entity_type == "firm" and hints.get("website"):
             rpc_params["p_website"] = hints["website"]
+        if hints.get("openalex_id"):
+            rpc_params["p_openalex_id"] = hints["openalex_id"]
 
     try:
         result = client.rpc("upsert_entity_with_aliases", rpc_params).execute()

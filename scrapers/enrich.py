@@ -21,8 +21,9 @@ from pydantic import BaseModel, Field
 
 sys.path.insert(0, ".")
 
-from scrapers.shared.db import get_client, upsert_alias
+from scrapers.shared.db import get_client, upsert_alias, upsert_tag, link_entity_tag
 from scrapers.shared.normalize import normalize_name
+from scrapers.shared.rate_limit import RateLimiter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -77,11 +78,22 @@ Rules:
 - Tags should be broad categories (e.g., "computational design", "sustainable architecture")
 - Only include aliases you are confident about.
 
+Examples:
+- Entity: "Bjarke Ingels Group", Sector: architecture, Country: DK, City: Copenhagen
+  Summary: "Bjarke Ingels Group is a Copenhagen-based architecture firm founded in 2005, known for pragmatic utopian design that blends social infrastructure with sustainability."
+  Tags: ["sustainable architecture", "urban design", "mixed-use", "public infrastructure", "parametric design"]
+  Aliases: ["BIG"]
+
+- Entity: "Sidewalk Labs", Sector: technology, Country: US, City: New York
+  Summary: "Sidewalk Labs was an Alphabet subsidiary focused on urban innovation and smart city technologies, active from 2015 to 2021."
+  Tags: ["smart cities", "urban technology", "data-driven planning", "mobility"]
+  Aliases: []
+
 Entity name: {name}
 Sector: {sector}
 Country: {country}
 City: {city}
-"""
+{sources_context}"""
 
 PERSON_PROMPT = """You are enriching entries for a professional directory of architecture, design, and technology.
 
@@ -95,18 +107,54 @@ Rules:
 - Do not invent credentials, affiliations, or achievements.
 - Tags should describe their research/work area.
 
+Examples:
+- Person: "Patrik Schumacher", Sector: architecture
+  Summary: "Patrik Schumacher is the principal of Zaha Hadid Architects and a prominent advocate for parametricism as an architectural style."
+  Tags: ["parametricism", "computational design", "urbanism", "architectural theory"]
+
+- Person: "Neri Oxman", Sector: technology
+  Summary: "Neri Oxman is a designer and professor known for pioneering material ecology, combining computational design, biology, and digital fabrication."
+  Tags: ["material ecology", "bio-design", "digital fabrication", "computational design", "research"]
+
 Person name: {name}
 Sector: {sector}
-"""
+{sources_context}"""
+
+
+def _get_sources_context(db, entity_id: str, entity_type: str) -> str:
+    """Fetch linked source titles to include in the enrichment prompt."""
+    try:
+        result = (
+            db.table("entity_sources")
+            .select("sources(title, source_name)")
+            .eq("entity_id", entity_id)
+            .eq("entity_type", entity_type)
+            .limit(5)
+            .execute()
+        )
+        if not result.data:
+            return ""
+        titles = [
+            row["sources"]["title"]
+            for row in result.data
+            if row.get("sources") and row["sources"].get("title")
+        ]
+        if not titles:
+            return ""
+        return "Mentioned in: " + "; ".join(titles)
+    except Exception:
+        return ""
 
 
 def enrich_firm(client_ai, db, firm: dict, dry_run: bool) -> bool:
     """Enrich a single firm. Returns True if updated."""
+    sources_context = _get_sources_context(db, firm["id"], "firm")
     prompt = FIRM_PROMPT.format(
         name=firm["display_name"],
         sector=firm.get("sector", ""),
         country=firm.get("country", "") or "unknown",
         city=firm.get("city", "") or "unknown",
+        sources_context=sources_context,
     )
 
     try:
@@ -138,16 +186,26 @@ def enrich_firm(client_ai, db, firm: dict, dry_run: bool) -> bool:
         if len(normalized) >= 2:
             upsert_alias(firm["id"], "firm", alias, normalized)
 
-    logger.info("Enriched firm: %s (summary=%d chars, %d aliases)",
-                firm["display_name"], len(result.summary), len(result.aliases))
+    # Persist LLM-generated tags
+    for tag_name in result.tags:
+        slug = normalize_name(tag_name)
+        if len(slug) >= 2:
+            tag_row = upsert_tag(tag_name, slug)
+            if tag_row:
+                link_entity_tag(firm["id"], "firm", tag_row["id"])
+
+    logger.info("Enriched firm: %s (summary=%d chars, %d aliases, %d tags)",
+                firm["display_name"], len(result.summary), len(result.aliases), len(result.tags))
     return True
 
 
 def enrich_person(client_ai, db, person: dict, dry_run: bool) -> bool:
     """Enrich a single person. Returns True if updated."""
+    sources_context = _get_sources_context(db, person["id"], "person")
     prompt = PERSON_PROMPT.format(
         name=person["display_name"],
         sector=person.get("sector", ""),
+        sources_context=sources_context,
     )
 
     try:
@@ -172,8 +230,16 @@ def enrich_person(client_ai, db, person: dict, dry_run: bool) -> bool:
     if update:
         db.table("people").update(update).eq("id", person["id"]).execute()
 
-    logger.info("Enriched person: %s (bio=%d chars)",
-                person["display_name"], len(result.summary))
+    # Persist LLM-generated tags
+    for tag_name in result.tags:
+        slug = normalize_name(tag_name)
+        if len(slug) >= 2:
+            tag_row = upsert_tag(tag_name, slug)
+            if tag_row:
+                link_entity_tag(person["id"], "person", tag_row["id"])
+
+    logger.info("Enriched person: %s (bio=%d chars, %d tags)",
+                person["display_name"], len(result.summary), len(result.tags))
     return True
 
 
@@ -204,10 +270,14 @@ def run(limit: int, entity_type: str | None, dry_run: bool):
     logger.info("Processing %d enrichment items (dry_run=%s)", len(queue_items.data), dry_run)
     now = datetime.now(timezone.utc).isoformat()
 
+    # Rate limit API calls: 1 second minimum between LLM requests
+    limiter = RateLimiter(min_delay=1.0)
+
     success = 0
     failed = 0
 
     for item in queue_items.data:
+        limiter.wait()
         eid = item["entity_id"]
         etype = item["entity_type"]
 

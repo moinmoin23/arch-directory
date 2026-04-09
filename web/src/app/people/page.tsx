@@ -8,6 +8,8 @@ import { FilterChips } from "@/components/FilterChips";
 import { SearchBar } from "@/components/SearchBar";
 import type { Enums } from "@/lib/database.types";
 
+export const revalidate = 1800;
+
 const VALID_SECTORS = ["architecture", "design", "technology", "multidisciplinary"] as const;
 
 const PER_PAGE = 36;

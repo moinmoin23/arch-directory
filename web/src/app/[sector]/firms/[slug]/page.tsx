@@ -4,21 +4,34 @@ import Link from "next/link";
 import { getFirmBySlug, getFirmAliases, getFirmAwards } from "@/lib/queries/firms";
 import { createServerClient } from "@/lib/supabase-server";
 
+export const revalidate = 3600;
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
 type Props = {
   params: Promise<{ sector: string; slug: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { sector, slug } = await params;
   const firm = await getFirmBySlug(slug);
   if (!firm) return {};
 
   const location = [firm.city, firm.country].filter(Boolean).join(", ");
+  const description =
+    firm.short_description ||
+    `${firm.display_name} is a ${firm.sector} firm${location ? ` based in ${location}` : ""}.`;
+  const sectorPath = firm.sector === "multidisciplinary" ? "technology" : firm.sector;
+
   return {
     title: firm.display_name,
-    description:
-      firm.short_description ||
-      `${firm.display_name} is a ${firm.sector} firm${location ? ` based in ${location}` : ""}.`,
+    description,
+    openGraph: {
+      title: firm.display_name,
+      description,
+      url: `${BASE_URL}/${sectorPath}/firms/${slug}`,
+      type: "profile",
+    },
     ...((isThinPage(firm) || firm.publish_status !== "published") && {
       robots: { index: false, follow: true },
     }),
@@ -72,21 +85,31 @@ export default async function FirmDetailPage({ params }: Props) {
     }
   }
 
-  const [aliases, awards] = await Promise.all([
+  const supabase2 = createServerClient();
+  const [aliases, awards, tagsResult] = await Promise.all([
     getFirmAliases(firm.id),
     getFirmAwards(firm.id),
+    supabase2
+      .from("entity_tags")
+      .select("tags(name)")
+      .eq("entity_id", firm.id)
+      .eq("entity_type", "firm")
+      .limit(10),
   ]);
+  const tags = (tagsResult.data ?? [])
+    .map((et: any) => et.tags?.name)
+    .filter(Boolean) as string[];
 
   const location = [firm.city, firm.country].filter(Boolean).join(", ");
   const sectorPath = firm.sector === "multidisciplinary" ? "technology" : firm.sector;
 
-  // Schema.org JSON-LD
+  // Schema.org JSON-LD — Organization
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: firm.display_name,
     ...(aliases.length > 0 && { alternateName: aliases }),
-    ...(firm.website && { url: firm.website }),
+    ...(firm.website && { url: firm.website, sameAs: [firm.website] }),
     ...(firm.short_description && { description: firm.short_description }),
     ...(location && {
       address: {
@@ -96,6 +119,46 @@ export default async function FirmDetailPage({ params }: Props) {
       },
     }),
     ...(firm.founded_year && { foundingDate: String(firm.founded_year) }),
+    ...(firm.firm_people &&
+      firm.firm_people.length > 0 && {
+        member: firm.firm_people.map((fp) => ({
+          "@type": "Person",
+          name: fp.people.display_name,
+          ...(fp.role && { jobTitle: fp.role }),
+        })),
+      }),
+    ...(awards.length > 0 && {
+      award: awards.map((ar) => {
+        const a = ar.awards as unknown as { award_name: string };
+        return a.award_name;
+      }),
+    }),
+    knowsAbout: firm.sector,
+  };
+
+  // Schema.org JSON-LD — BreadcrumbList
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: firm.sector,
+        item: `${BASE_URL}/${sectorPath}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Firms",
+        item: `${BASE_URL}/${sectorPath}/firms`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: firm.display_name,
+      },
+    ],
   };
 
   return (
@@ -104,6 +167,21 @@ export default async function FirmDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
+
+      {/* Hero image */}
+      {firm.image_url && (
+        <div className="w-full aspect-[21/9] bg-muted/10 overflow-hidden">
+          <img
+            src={firm.image_url}
+            alt={firm.display_name}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      )}
 
       <div className="mx-auto max-w-4xl px-6 py-12">
         {/* Breadcrumb */}
@@ -123,9 +201,20 @@ export default async function FirmDetailPage({ params }: Props) {
         </nav>
 
         {/* Header */}
-        <h1 className="text-3xl font-bold tracking-tight">
-          {firm.display_name}
-        </h1>
+        <div className="flex items-center gap-4">
+          {firm.logo_url && (
+            <img
+              src={firm.logo_url}
+              alt=""
+              width={48}
+              height={48}
+              className="rounded"
+            />
+          )}
+          <h1 className="text-3xl font-bold tracking-tight">
+            {firm.display_name}
+          </h1>
+        </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
           <span className="border border-border px-2 py-0.5">{firm.sector}</span>
@@ -138,6 +227,20 @@ export default async function FirmDetailPage({ params }: Props) {
           <p className="mt-3 text-sm text-muted">
             Also known as: {aliases.join(", ")}
           </p>
+        )}
+
+        {/* Tags */}
+        {tags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="border border-border px-2 py-0.5 text-xs text-muted"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
         )}
 
         {/* Description */}

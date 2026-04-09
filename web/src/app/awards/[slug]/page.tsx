@@ -4,6 +4,10 @@ import Link from "next/link";
 import { getAwardBySlug } from "@/lib/queries/awards";
 import { createServerClient } from "@/lib/supabase-server";
 
+export const revalidate = 3600;
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
 type Props = {
   params: Promise<{ slug: string }>;
 };
@@ -13,9 +17,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const award = await getAwardBySlug(slug);
   if (!award) return {};
 
+  const description = `${award.award_name} — ${award.organization || "Award details"}.`;
+
   return {
     title: `${award.award_name}${award.year ? ` (${award.year})` : ""}`,
-    description: `${award.award_name} — ${award.organization || "Award details"}.`,
+    description,
+    openGraph: {
+      title: `${award.award_name}${award.year ? ` (${award.year})` : ""}`,
+      description,
+      url: `${BASE_URL}/awards/${slug}`,
+    },
   };
 }
 
@@ -31,7 +42,46 @@ export default async function AwardDetailPage({ params }: Props) {
 
   if (!award) notFound();
 
+  // Schema.org JSON-LD
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: award.award_name,
+    ...(award.organization && {
+      creator: { "@type": "Organization", name: award.organization },
+    }),
+    ...(award.year && { dateCreated: String(award.year) }),
+    ...(award.category && { genre: award.category }),
+  };
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Awards",
+        item: `${BASE_URL}/awards`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: award.award_name,
+      },
+    ],
+  };
+
   return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
     <div className="mx-auto max-w-4xl px-6 py-12">
       {/* Breadcrumb */}
       <nav className="text-sm text-muted mb-8">
@@ -104,5 +154,6 @@ export default async function AwardDetailPage({ params }: Props) {
         </section>
       )}
     </div>
+    </>
   );
 }

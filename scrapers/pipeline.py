@@ -4,14 +4,19 @@ Usage:
     python scrapers/pipeline.py                  # run all registered scrapers
     python scrapers/pipeline.py --sources rss    # run specific scrapers
     python scrapers/pipeline.py --sources rss,openalex
+    python scrapers/pipeline.py --webhook-url https://hooks.slack.com/...
 """
 
 import argparse
 import importlib
+import json
 import logging
 import sys
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+
+import httpx
 
 # Configure logging before any imports that use it
 logging.basicConfig(
@@ -40,6 +45,10 @@ SOURCES: dict[str, str] = {
     "cumincad": "scrapers.cumincad_ingest",
     "fablabs": "scrapers.fablabs_ingest",
     "github": "scrapers.github_ingest",
+    "wikidata": "scrapers.wikidata_ingest",
+    "wikipedia_awards": "scrapers.wikipedia_awards_ingest",
+    "osm": "scrapers.osm_ingest",
+    "relationships": "scrapers.relationship_extract",
 }
 
 
@@ -93,6 +102,59 @@ def print_summary(results: list[SourceResult]) -> None:
     print("=" * 60 + "\n")
 
 
+def log_pipeline_run(results: list[SourceResult], started_at: str) -> None:
+    """Write a summary row to the pipeline_runs table."""
+    try:
+        from scrapers.shared.db import get_client
+
+        total_entities = sum(r.entity_count for r in results)
+        failures = sum(1 for r in results if r.error)
+        summary = [
+            {
+                "name": r.name,
+                "entities": r.entity_count,
+                "duration_s": round(r.duration_s, 1),
+                "error": r.error,
+            }
+            for r in results
+        ]
+
+        get_client().table("pipeline_runs").insert(
+            {
+                "started_at": started_at,
+                "finished_at": datetime.now(timezone.utc).isoformat(),
+                "sources_run": json.dumps([r.name for r in results]),
+                "total_entities": total_entities,
+                "failures": failures,
+                "summary": json.dumps(summary),
+            }
+        ).execute()
+        logger.info("Pipeline run logged to pipeline_runs table")
+    except Exception:
+        logger.exception("Failed to log pipeline run")
+
+
+def send_webhook(webhook_url: str, results: list[SourceResult]) -> None:
+    """Send a summary notification to a webhook URL (Slack/Discord compatible)."""
+    total = sum(r.entity_count for r in results)
+    failures = sum(1 for r in results if r.error)
+    status = "FAILED" if failures else "OK"
+
+    lines = [f"*Pipeline {status}* — {total} entities, {failures} failures"]
+    for r in results:
+        icon = "x" if r.error else "ok"
+        lines.append(f"  [{icon}] {r.name}: {r.entity_count} entities ({r.duration_s:.0f}s)")
+
+    payload = {"text": "\n".join(lines)}
+
+    try:
+        resp = httpx.post(webhook_url, json=payload, timeout=10)
+        resp.raise_for_status()
+        logger.info("Webhook notification sent")
+    except Exception:
+        logger.exception("Failed to send webhook notification")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run ingestion pipeline")
     parser.add_argument(
@@ -100,6 +162,12 @@ def main() -> int:
         type=str,
         default=None,
         help="Comma-separated source names to run (default: all)",
+    )
+    parser.add_argument(
+        "--webhook-url",
+        type=str,
+        default=None,
+        help="Webhook URL for Slack/Discord notifications",
     )
     args = parser.parse_args()
 
@@ -121,6 +189,7 @@ def main() -> int:
         print("\nNo sources registered. Register scrapers in pipeline.py SOURCES dict.")
         return 0
 
+    started_at = datetime.now(timezone.utc).isoformat()
     logger.info("Running %d source(s): %s", len(selected), ", ".join(selected))
 
     results = []
@@ -139,6 +208,11 @@ def main() -> int:
             )
 
     print_summary(results)
+    log_pipeline_run(results, started_at)
+
+    if args.webhook_url:
+        send_webhook(args.webhook_url, results)
+
     return 1 if any(r.error for r in results) else 0
 
 

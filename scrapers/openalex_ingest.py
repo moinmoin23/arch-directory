@@ -14,7 +14,7 @@ import time
 import httpx
 
 from scrapers.shared.cursors import get_cursor, update_cursor
-from scrapers.shared.db import link_entity_source, upsert_source
+from scrapers.shared.db import get_client, link_entity_source, upsert_source
 from scrapers.shared.resolver import resolve_entity
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 API_BASE = "https://api.openalex.org"
 MAILTO = "directory@example.com"  # polite pool access
 PER_PAGE = 50
-MAX_PAGES = 3  # modest first run: ~150 works per topic
+MAX_PAGES = 8  # expanded: ~400 works per topic
 RATE_LIMIT_S = 1.0
 
 # OpenAlex concept IDs / search terms for relevant topics
@@ -36,6 +36,17 @@ TOPIC_QUERIES = [
     "material science architecture",
     "urban design technology",
     "interaction design",
+    "timber architecture",
+    "3d printing construction",
+    "adaptive reuse architecture",
+    "building information modeling",
+    "robotic construction",
+    "mass timber",
+    "climate responsive design",
+    "responsive architecture",
+    "generative design architecture",
+    "circular economy buildings",
+    "post-occupancy evaluation",
 ]
 
 # Map OpenAlex concepts to our sectors
@@ -244,8 +255,32 @@ def _process_work(work: dict) -> None:
             "person",
             sector=sector,
         )
-        if result.entity_id and source_id:
-            link_entity_source(result.entity_id, "person", source_id, "author")
+        if result.entity_id:
+            if source_id:
+                link_entity_source(result.entity_id, "person", source_id, "author")
+
+            # Store ORCID and OpenAlex ID if available
+            orcid = author.get("orcid")
+            openalex_id = author.get("id")
+            update: dict = {}
+            if orcid:
+                # Extract ORCID from full URL
+                orcid_val = orcid.split("/")[-1] if "/" in orcid else orcid
+                update["orcid"] = orcid_val
+            if openalex_id:
+                update["openalex_id"] = openalex_id
+            if update:
+                try:
+                    db = get_client()
+                    # Only fill missing IDs
+                    for key in list(update.keys()):
+                        existing = db.table("people").select(key).eq("id", result.entity_id).limit(1).execute()
+                        if existing.data and existing.data[0].get(key):
+                            del update[key]
+                    if update:
+                        db.table("people").update(update).eq("id", result.entity_id).execute()
+                except Exception:
+                    pass  # Non-critical enrichment
 
 
 def _first_author_name(work: dict) -> str | None:

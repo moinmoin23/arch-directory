@@ -5,6 +5,8 @@ import { Pagination } from "@/components/Pagination";
 import { SearchBar } from "@/components/SearchBar";
 import { FilterChips } from "@/components/FilterChips";
 
+export const revalidate = 1800;
+
 const PER_PAGE = 36;
 
 export const metadata: Metadata = {

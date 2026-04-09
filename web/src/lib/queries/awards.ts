@@ -34,7 +34,10 @@ export async function listAwards(
 
   const { data, error, count } = await query.range(from, to);
 
-  if (error) return { awards: [], count: 0 };
+  if (error) {
+    console.error("[awards.listAwards]", error.message, error.details);
+    return { awards: [], count: 0 };
+  }
   return { awards: data as Award[], count: count ?? 0 };
 }
 
@@ -42,20 +45,13 @@ export async function getOrganizationsWithCounts(): Promise<
   { organization: string; count: number }[]
 > {
   const supabase = createServerClient();
-  const { data } = await supabase.from("awards").select("organization");
+  const { data, error } = await supabase.rpc("count_awards_by_organization");
 
-  if (!data) return [];
-
-  const counts: Record<string, number> = {};
-  for (const row of data) {
-    if (row.organization) {
-      counts[row.organization] = (counts[row.organization] || 0) + 1;
-    }
+  if (error) {
+    console.error("[awards.getOrganizationsWithCounts]", error.message, error.details);
+    return [];
   }
-
-  return Object.entries(counts)
-    .map(([organization, count]) => ({ organization, count }))
-    .sort((a, b) => b.count - a.count);
+  return data ?? [];
 }
 
 export async function getAwardBySlug(slug: string) {

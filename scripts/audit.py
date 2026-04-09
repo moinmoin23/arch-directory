@@ -279,6 +279,85 @@ def audit_sources(client, report: AuditReport):
                         f"Feed '{c['source_name']}' in error state")
 
 
+def audit_entity_sources(client, report: AuditReport):
+    """Find published entities with no entity_sources links."""
+    # Published firms without any entity_sources entry
+    firms = (
+        client.table("firms")
+        .select("id, display_name")
+        .eq("publish_status", "published")
+        .is_("merged_into", "null")
+        .limit(1000)
+        .execute()
+    )
+
+    # Get all firm IDs that have entity_sources
+    linked = (
+        client.table("entity_sources")
+        .select("entity_id")
+        .eq("entity_type", "firm")
+        .execute()
+    )
+    linked_ids = {r["entity_id"] for r in linked.data}
+
+    unlinked = [f for f in firms.data if f["id"] not in linked_ids]
+    if unlinked:
+        report.add("low", "no_source_links", "firm", "", "",
+                    f"{len(unlinked)} published firms have no entity_sources links (of {len(firms.data)} sampled)")
+
+
+def audit_dangling_merges(client, report: AuditReport):
+    """Find firms with merged_into pointing to a nonexistent target."""
+    merged = (
+        client.table("firms")
+        .select("id, display_name, merged_into")
+        .not_.is_("merged_into", "null")
+        .execute()
+    )
+
+    if not merged.data:
+        return
+
+    target_ids = list({m["merged_into"] for m in merged.data})
+    # Check which targets actually exist
+    for target_id in target_ids:
+        exists = client.table("firms").select("id").eq("id", target_id).limit(1).execute()
+        if not exists.data:
+            dangling = [m for m in merged.data if m["merged_into"] == target_id]
+            for m in dangling:
+                report.add("critical", "dangling_merge", "firm", m["id"], m["display_name"],
+                            f"merged_into={target_id} but target does not exist")
+
+
+def audit_fuzzy_duplicates(client, report: AuditReport):
+    """Find likely firm duplicates via trigram similarity > 0.95."""
+    firms = (
+        client.table("firms")
+        .select("id, canonical_name, display_name")
+        .eq("publish_status", "published")
+        .is_("merged_into", "null")
+        .order("canonical_name")
+        .limit(2000)
+        .execute()
+    )
+
+    if not firms.data:
+        return
+
+    # Compare adjacent names (sorted by canonical_name) for near-matches
+    # This is O(n) rather than O(n^2) — catches close alphabetical neighbors
+    from difflib import SequenceMatcher
+
+    data = firms.data
+    for i in range(len(data) - 1):
+        a = data[i]
+        b = data[i + 1]
+        ratio = SequenceMatcher(None, a["canonical_name"], b["canonical_name"]).ratio()
+        if ratio > 0.95 and a["canonical_name"] != b["canonical_name"]:
+            report.add("high", "fuzzy_duplicate", "firm", a["id"], a["display_name"],
+                        f"Very similar to '{b['display_name']}' (ratio={ratio:.3f})")
+
+
 # ── Report output ───────────────────────────────────────────────────
 
 
@@ -356,6 +435,9 @@ def main():
     audit_duplicates(client, report)
     audit_queues(client, report)
     audit_sources(client, report)
+    audit_entity_sources(client, report)
+    audit_dangling_merges(client, report)
+    audit_fuzzy_duplicates(client, report)
 
     summary = print_report(report)
 

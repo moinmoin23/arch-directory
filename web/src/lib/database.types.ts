@@ -116,6 +116,60 @@ export type Database = {
         }
         Relationships: []
       }
+      education: {
+        Row: {
+          created_at: string
+          degree: string | null
+          end_year: number | null
+          field: string | null
+          id: string
+          institution_id: string | null
+          institution_name: string
+          person_id: string
+          source: string | null
+          start_year: number | null
+        }
+        Insert: {
+          created_at?: string
+          degree?: string | null
+          end_year?: number | null
+          field?: string | null
+          id?: string
+          institution_id?: string | null
+          institution_name: string
+          person_id: string
+          source?: string | null
+          start_year?: number | null
+        }
+        Update: {
+          created_at?: string
+          degree?: string | null
+          end_year?: number | null
+          field?: string | null
+          id?: string
+          institution_id?: string | null
+          institution_name?: string
+          person_id?: string
+          source?: string | null
+          start_year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "education_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "education_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       enrichment_queue: {
         Row: {
           attempts: number
@@ -176,27 +230,148 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_relationships: {
+        Row: {
+          created_at: string
+          end_year: number | null
+          from_entity_id: string
+          from_entity_type: Database["public"]["Enums"]["entity_type"]
+          id: string
+          notes: string | null
+          relationship: Database["public"]["Enums"]["relationship_type"]
+          start_year: number | null
+          to_entity_id: string
+          to_entity_type: Database["public"]["Enums"]["entity_type"]
+        }
+        Insert: {
+          created_at?: string
+          end_year?: number | null
+          from_entity_id: string
+          from_entity_type: Database["public"]["Enums"]["entity_type"]
+          id?: string
+          notes?: string | null
+          relationship: Database["public"]["Enums"]["relationship_type"]
+          start_year?: number | null
+          to_entity_id: string
+          to_entity_type: Database["public"]["Enums"]["entity_type"]
+        }
+        Update: {
+          created_at?: string
+          end_year?: number | null
+          from_entity_id?: string
+          from_entity_type?: Database["public"]["Enums"]["entity_type"]
+          id?: string
+          notes?: string | null
+          relationship?: Database["public"]["Enums"]["relationship_type"]
+          start_year?: number | null
+          to_entity_id?: string
+          to_entity_type?: Database["public"]["Enums"]["entity_type"]
+        }
+        Relationships: []
+      }
+      entity_sources: {
+        Row: {
+          confidence: number
+          created_at: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          id: string
+          mention_type: string
+          source_id: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          id?: string
+          mention_type?: string
+          source_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["entity_type"]
+          id?: string
+          mention_type?: string
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_sources_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_tags: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          id: string
+          source: string
+          tag_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          id?: string
+          source?: string
+          tag_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["entity_type"]
+          id?: string
+          source?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       firm_people: {
         Row: {
+          end_year: number | null
           firm_id: string
           id: string
           is_current: boolean
           person_id: string
           role: string | null
+          source: string | null
+          start_year: number | null
         }
         Insert: {
+          end_year?: number | null
           firm_id: string
           id?: string
           is_current?: boolean
           person_id: string
           role?: string | null
+          source?: string | null
+          start_year?: number | null
         }
         Update: {
+          end_year?: number | null
           firm_id?: string
           id?: string
           is_current?: boolean
           person_id?: string
           role?: string | null
+          source?: string | null
+          start_year?: number | null
         }
         Relationships: [
           {
@@ -220,12 +395,18 @@ export type Database = {
           canonical_name: string
           city: string | null
           country: string | null
+          country_code: string | null
           created_at: string
           display_name: string
           founded_year: number | null
           id: string
+          image_url: string | null
           last_seen_at: string | null
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
           merged_into: string | null
+          openalex_id: string | null
           publish_status: string
           quality_score: number
           sector: Database["public"]["Enums"]["sector_type"]
@@ -235,17 +416,24 @@ export type Database = {
           source_count: number
           updated_at: string
           website: string | null
+          wikidata_id: string | null
         }
         Insert: {
           canonical_name: string
           city?: string | null
           country?: string | null
+          country_code?: string | null
           created_at?: string
           display_name: string
           founded_year?: number | null
           id?: string
+          image_url?: string | null
           last_seen_at?: string | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
           merged_into?: string | null
+          openalex_id?: string | null
           publish_status?: string
           quality_score?: number
           sector?: Database["public"]["Enums"]["sector_type"]
@@ -255,17 +443,24 @@ export type Database = {
           source_count?: number
           updated_at?: string
           website?: string | null
+          wikidata_id?: string | null
         }
         Update: {
           canonical_name?: string
           city?: string | null
           country?: string | null
+          country_code?: string | null
           created_at?: string
           display_name?: string
           founded_year?: number | null
           id?: string
+          image_url?: string | null
           last_seen_at?: string | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
           merged_into?: string | null
+          openalex_id?: string | null
           publish_status?: string
           quality_score?: number
           sector?: Database["public"]["Enums"]["sector_type"]
@@ -275,6 +470,7 @@ export type Database = {
           source_count?: number
           updated_at?: string
           website?: string | null
+          wikidata_id?: string | null
         }
         Relationships: [
           {
@@ -316,13 +512,18 @@ export type Database = {
       people: {
         Row: {
           bio: string | null
+          birth_year: number | null
           canonical_name: string
           created_at: string
           current_firm_id: string | null
+          death_year: number | null
           display_name: string
           id: string
+          image_url: string | null
           last_seen_at: string | null
           nationality: string | null
+          openalex_id: string | null
+          orcid: string | null
           publish_status: string
           quality_score: number
           role: string | null
@@ -331,16 +532,22 @@ export type Database = {
           source_count: number
           title: string | null
           updated_at: string
+          wikidata_id: string | null
         }
         Insert: {
           bio?: string | null
+          birth_year?: number | null
           canonical_name: string
           created_at?: string
           current_firm_id?: string | null
+          death_year?: number | null
           display_name: string
           id?: string
+          image_url?: string | null
           last_seen_at?: string | null
           nationality?: string | null
+          openalex_id?: string | null
+          orcid?: string | null
           publish_status?: string
           quality_score?: number
           role?: string | null
@@ -349,16 +556,22 @@ export type Database = {
           source_count?: number
           title?: string | null
           updated_at?: string
+          wikidata_id?: string | null
         }
         Update: {
           bio?: string | null
+          birth_year?: number | null
           canonical_name?: string
           created_at?: string
           current_firm_id?: string | null
+          death_year?: number | null
           display_name?: string
           id?: string
+          image_url?: string | null
           last_seen_at?: string | null
           nationality?: string | null
+          openalex_id?: string | null
+          orcid?: string | null
           publish_status?: string
           quality_score?: number
           role?: string | null
@@ -367,6 +580,7 @@ export type Database = {
           source_count?: number
           title?: string | null
           updated_at?: string
+          wikidata_id?: string | null
         }
         Relationships: [
           {
@@ -377,6 +591,131 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pipeline_runs: {
+        Row: {
+          failures: number
+          finished_at: string | null
+          id: string
+          sources_run: Json
+          started_at: string
+          summary: Json | null
+          total_entities: number
+          webhook_sent: boolean
+        }
+        Insert: {
+          failures?: number
+          finished_at?: string | null
+          id?: string
+          sources_run?: Json
+          started_at?: string
+          summary?: Json | null
+          total_entities?: number
+          webhook_sent?: boolean
+        }
+        Update: {
+          failures?: number
+          finished_at?: string | null
+          id?: string
+          sources_run?: Json
+          started_at?: string
+          summary?: Json | null
+          total_entities?: number
+          webhook_sent?: boolean
+        }
+        Relationships: []
+      }
+      project_entities: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          id: string
+          project_id: string
+          role: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["entity_type"]
+          id?: string
+          project_id: string
+          role?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["entity_type"]
+          id?: string
+          project_id?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_entities_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string
+          description: string | null
+          display_name: string
+          id: string
+          image_url: string | null
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          project_type: Database["public"]["Enums"]["project_type"]
+          sector: Database["public"]["Enums"]["sector_type"] | null
+          slug: string
+          updated_at: string
+          wikidata_id: string | null
+          year: number | null
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          display_name: string
+          id?: string
+          image_url?: string | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          project_type?: Database["public"]["Enums"]["project_type"]
+          sector?: Database["public"]["Enums"]["sector_type"] | null
+          slug: string
+          updated_at?: string
+          wikidata_id?: string | null
+          year?: number | null
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          image_url?: string | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          project_type?: Database["public"]["Enums"]["project_type"]
+          sector?: Database["public"]["Enums"]["sector_type"] | null
+          slug?: string
+          updated_at?: string
+          wikidata_id?: string | null
+          year?: number | null
+        }
+        Relationships: []
       }
       review_queue: {
         Row: {
@@ -453,36 +792,98 @@ export type Database = {
         }
         Relationships: []
       }
+      tags: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      count_awards_by_organization: {
+        Args: never
+        Returns: {
+          count: number
+          organization: string
+        }[]
+      }
+      count_firms_by_country: {
+        Args: never
+        Returns: {
+          count: number
+          country: string
+        }[]
+      }
+      count_firms_by_sector: {
+        Args: never
+        Returns: {
+          count: number
+          sector: Database["public"]["Enums"]["sector_type"]
+        }[]
+      }
+      count_people_by_role: {
+        Args: never
+        Returns: {
+          count: number
+          role: string
+        }[]
+      }
       daitch_mokotoff: { Args: { "": string }; Returns: string[] }
       dmetaphone: { Args: { "": string }; Returns: string }
       dmetaphone_alt: { Args: { "": string }; Returns: string }
+      get_people_letters: {
+        Args: never
+        Returns: {
+          letter: string
+        }[]
+      }
       match_entity_trigram: {
         Args: { search_name: string; search_type: string; threshold?: number }
-        Returns: { id: string; canonical_name: string; similarity: number }[]
+        Returns: {
+          canonical_name: string
+          id: string
+          similarity: number
+        }[]
       }
       search_directory: {
         Args: {
+          country_filter?: string
           query: string
           result_limit?: number
-          sector_filter?: string | null
-          country_filter?: string | null
+          sector_filter?: string
         }
         Returns: {
+          city: string
+          country: string
+          display_name: string
           entity_type: string
           id: string
-          slug: string
-          display_name: string
-          sector: string
-          country: string | null
-          city: string | null
-          short_description: string | null
-          role: string | null
           rank: number
+          role: string
+          sector: string
+          short_description: string
+          slug: string
         }[]
       }
       show_limit: { Args: never; Returns: number }
@@ -490,18 +891,55 @@ export type Database = {
       soundex: { Args: { "": string }; Returns: string }
       text_soundex: { Args: { "": string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
+      upsert_entity_with_aliases: {
+        Args: {
+          p_aliases?: Json
+          p_canonical_name: string
+          p_city?: string
+          p_country?: string
+          p_display_name: string
+          p_entity_type: string
+          p_openalex_id?: string
+          p_sector: string
+          p_slug: string
+          p_website?: string
+          p_wikidata_id?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       entity_type: "firm" | "person"
       prestige_tier: "1" | "2" | "3"
+      project_type:
+        | "building"
+        | "installation"
+        | "research"
+        | "product"
+        | "exhibition"
+        | "other"
       queue_status: "pending" | "processing" | "done" | "failed"
+      relationship_type:
+        | "subsidiary"
+        | "partner"
+        | "successor"
+        | "spin_off"
+        | "acquired_by"
+        | "collaboration"
+        | "other"
       review_status: "pending" | "accepted" | "rejected" | "skipped"
       sector_type:
         | "architecture"
         | "design"
         | "technology"
         | "multidisciplinary"
-      source_type: "rss" | "crawl" | "api" | "manual" | "wikipedia" | "repository"
+      source_type:
+        | "rss"
+        | "crawl"
+        | "api"
+        | "manual"
+        | "wikipedia"
+        | "repository"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -634,7 +1072,24 @@ export const Constants = {
     Enums: {
       entity_type: ["firm", "person"],
       prestige_tier: ["1", "2", "3"],
+      project_type: [
+        "building",
+        "installation",
+        "research",
+        "product",
+        "exhibition",
+        "other",
+      ],
       queue_status: ["pending", "processing", "done", "failed"],
+      relationship_type: [
+        "subsidiary",
+        "partner",
+        "successor",
+        "spin_off",
+        "acquired_by",
+        "collaboration",
+        "other",
+      ],
       review_status: ["pending", "accepted", "rejected", "skipped"],
       sector_type: [
         "architecture",
@@ -642,7 +1097,7 @@ export const Constants = {
         "technology",
         "multidisciplinary",
       ],
-      source_type: ["rss", "crawl", "api", "manual", "wikipedia"],
+      source_type: ["rss", "crawl", "api", "manual", "wikipedia", "repository"],
     },
   },
 } as const

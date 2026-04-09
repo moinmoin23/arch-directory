@@ -5,8 +5,16 @@ export function PersonCard({ person }: { person: PersonWithFirm }) {
   return (
     <Link
       href={`/people/${person.slug}`}
-      className="group block border border-border p-5 transition-colors hover:border-foreground"
+      className="group flex gap-4 border border-border p-5 transition-colors hover:border-foreground"
     >
+      {person.image_url && (
+        <img
+          src={person.image_url}
+          alt={person.display_name}
+          className="h-16 w-16 rounded-full object-cover flex-shrink-0"
+        />
+      )}
+      <div className="min-w-0">
       <h3 className="font-semibold group-hover:underline">
         {person.display_name}
       </h3>
@@ -22,6 +30,7 @@ export function PersonCard({ person }: { person: PersonWithFirm }) {
           {person.sector}
         </span>
       </div>
+    </div>
     </Link>
   );
 }

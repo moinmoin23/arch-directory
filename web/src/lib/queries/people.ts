@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServerClient } from "../supabase-server";
 import type { Tables, Enums } from "../database.types";
 
@@ -8,7 +9,7 @@ export type PersonWithFirm = Person & {
   firms: Tables<"firms"> | null;
 };
 
-export async function getPersonBySlug(slug: string) {
+export const getPersonBySlug = cache(async (slug: string) => {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from("people")
@@ -18,7 +19,7 @@ export async function getPersonBySlug(slug: string) {
 
   if (error) return null;
   return data as unknown as PersonWithFirm;
-}
+});
 
 export async function listPeople(
   {
@@ -60,22 +61,25 @@ export async function listPeople(
 
   const { data, error, count } = await query.range(from, to);
 
-  if (error) return { people: [], count: 0 };
+  if (error) {
+    console.error("[people.listPeople]", error.message, error.details);
+    return { people: [], count: 0 };
+  }
   return { people: data as unknown as PersonWithFirm[], count: count ?? 0 };
 }
 
 export async function getPeopleLetterCounts() {
   const supabase = createServerClient();
-  const { data } = await supabase
-    .from("people")
-    .select("display_name")
-    .eq("publish_status", "published");
+  const { data, error } = await supabase.rpc("get_people_letters");
 
   const letters = new Set<string>();
+  if (error) {
+    console.error("[people.getPeopleLetterCounts]", error.message, error.details);
+    return letters;
+  }
   if (data) {
-    for (const p of data) {
-      const first = p.display_name?.charAt(0)?.toUpperCase();
-      if (first && /[A-Z]/.test(first)) letters.add(first);
+    for (const row of data) {
+      letters.add(row.letter);
     }
   }
   return letters;
@@ -97,7 +101,10 @@ export async function listPeopleByRole(
     .order("display_name")
     .range(from, to);
 
-  if (error) return { people: [], count: 0 };
+  if (error) {
+    console.error("[people.listPeopleByRole]", error.message, error.details);
+    return { people: [], count: 0 };
+  }
   return { people: data as unknown as PersonWithFirm[], count: count ?? 0 };
 }
 
@@ -117,7 +124,10 @@ export async function listPeopleBySector(
     .order("display_name")
     .range(from, to);
 
-  if (error) return { people: [], count: 0 };
+  if (error) {
+    console.error("[people.listPeopleBySector]", error.message, error.details);
+    return { people: [], count: 0 };
+  }
   return { people: data as unknown as PersonWithFirm[], count: count ?? 0 };
 }
 
@@ -125,23 +135,13 @@ export async function getRolesWithCounts(): Promise<
   { role: string; count: number }[]
 > {
   const supabase = createServerClient();
-  const { data } = await supabase
-    .from("people")
-    .select("role")
-    .eq("publish_status", "published");
+  const { data, error } = await supabase.rpc("count_people_by_role");
 
-  if (!data) return [];
-
-  const counts: Record<string, number> = {};
-  for (const row of data) {
-    if (row.role) {
-      counts[row.role] = (counts[row.role] || 0) + 1;
-    }
+  if (error) {
+    console.error("[people.getRolesWithCounts]", error.message, error.details);
+    return [];
   }
-
-  return Object.entries(counts)
-    .map(([role, count]) => ({ role, count }))
-    .sort((a, b) => b.count - a.count);
+  return data ?? [];
 }
 
 export async function getPersonAwards(personId: string) {

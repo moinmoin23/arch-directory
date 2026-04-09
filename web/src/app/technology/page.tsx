@@ -7,6 +7,8 @@ import { PersonCard } from "@/components/PersonCard";
 import { Pagination } from "@/components/Pagination";
 import { SearchBar } from "@/components/SearchBar";
 
+export const revalidate = 1800;
+
 const PER_PAGE = 36;
 
 export const metadata: Metadata = {

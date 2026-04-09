@@ -2,6 +2,8 @@ import Link from "next/link";
 import { countFirmsBySector } from "@/lib/queries/firms";
 import { createServerClient } from "@/lib/supabase-server";
 
+export const revalidate = 1800;
+
 const SECTORS = [
   {
     slug: "architecture",

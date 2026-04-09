@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  listFirmsByCountry2,
+  listFirmsByCountry,
   getCountriesWithCounts,
 } from "@/lib/queries/firms";
 import { FirmCard } from "@/components/FirmCard";
 import { Pagination } from "@/components/Pagination";
+
+export const revalidate = 1800;
 
 const PER_PAGE = 36;
 
@@ -60,7 +62,7 @@ export default async function CountryFirmsPage({
   const page = Number(sp.page) || 1;
 
   const upperCode = code.toUpperCase();
-  const { firms, count } = await listFirmsByCountry2(upperCode, {
+  const { firms, count } = await listFirmsByCountry(upperCode, {
     page,
     perPage: PER_PAGE,
   });
