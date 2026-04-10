@@ -13,8 +13,15 @@ type Props = {
   params: Promise<{ sector: string; slug: string }>;
 };
 
+type FirmTagRow = {
+  tags: {
+    name: string;
+    slug: string;
+  } | null;
+};
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { sector, slug } = await params;
+  const { slug } = await params;
   const firm = await getFirmBySlug(slug);
   if (!firm) return {};
 
@@ -65,7 +72,7 @@ export async function generateStaticParams() {
 }
 
 export default async function FirmDetailPage({ params }: Props) {
-  const { sector, slug } = await params;
+  const { slug } = await params;
   const firm = await getFirmBySlug(slug);
 
   if (!firm) notFound();
@@ -98,8 +105,8 @@ export default async function FirmDetailPage({ params }: Props) {
       .eq("entity_type", "firm")
       .limit(10),
   ]);
-  const tags = (tagsResult.data ?? [])
-    .map((et: any) => et.tags ? { name: et.tags.name as string, slug: et.tags.slug as string } : null)
+  const tags = ((tagsResult.data ?? []) as FirmTagRow[])
+    .map((et) => (et.tags ? { name: et.tags.name, slug: et.tags.slug } : null))
     .filter((t): t is { name: string; slug: string } => t !== null);
 
   const location = [firm.city, firm.country].filter(Boolean).join(", ");

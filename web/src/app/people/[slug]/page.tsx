@@ -18,6 +18,13 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
+type PersonTagRow = {
+  tags: {
+    name: string;
+    slug: string;
+  } | null;
+};
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const person = await getPersonBySlug(slug);
@@ -69,8 +76,8 @@ export default async function PersonDetailPage({ params }: Props) {
       .limit(10),
   ]);
   const education = educationResult.data ?? [];
-  const tags = (tagsResult.data ?? [])
-    .map((et: any) => et.tags ? { name: et.tags.name as string, slug: et.tags.slug as string } : null)
+  const tags = ((tagsResult.data ?? []) as PersonTagRow[])
+    .map((et) => (et.tags ? { name: et.tags.name, slug: et.tags.slug } : null))
     .filter((t): t is { name: string; slug: string } => t !== null);
 
   const firm = person.firms;
