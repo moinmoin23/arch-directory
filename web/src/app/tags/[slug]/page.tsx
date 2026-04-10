@@ -117,7 +117,7 @@ export default async function TagDetailPage({ params }: Props) {
 
         {firms.length === 0 && people.length === 0 && (
           <p className="mt-12 text-center text-muted">
-            No entities tagged with "{tag.name}" yet.
+            No entities tagged with &quot;{tag.name}&quot; yet.
           </p>
         )}
       </div>

@@ -1,12 +1,14 @@
 "use client";
 
 export default function GlobalError({
-  error,
+  error: _error,
   unstable_retry,
 }: {
   error: Error & { digest?: string };
   unstable_retry: () => void;
 }) {
+  void _error;
+
   return (
     <html lang="en">
       <body className="min-h-screen flex items-center justify-center">
