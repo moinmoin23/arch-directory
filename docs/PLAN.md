@@ -258,6 +258,79 @@ Within each phase, sub-tasks are largely independent and can be parallelized.
 
 ---
 
+## Phase 6: Frontend Surfacing & Data Enrichment (2026-04-09 → 2026-04-10)
+
+**Status:** Complete. Implemented after Phase 1-5 to surface existing data and enrich the long tail.
+
+### 6A. Frontend data surfacing
+- **Sources & Publications section** on firm and person detail pages — displays `entity_sources` via the existing `SourceList` component
+- **Clickable tag pills** on detail pages linking to `/tags/[slug]` pages
+- **Tag browsing UI** — new `/tags` index page (grouped by category) and `/tags/[slug]` landing pages showing firms + people per tag
+- **Source count badges** on `FirmCard` and `PersonCard` — "N sources" indicator
+- **Country dropdown** on firm listing (replaces text input, populated from `getCountriesWithCounts()` RPC)
+- **Image credits** displayed below hero images on firm/person detail pages
+- **Files:** `web/src/app/[sector]/firms/[slug]/page.tsx`, `web/src/app/people/[slug]/page.tsx`, `web/src/app/tags/page.tsx`, `web/src/app/tags/[slug]/page.tsx`, `web/src/lib/queries/tags.ts`, new migration `20260412000001_source_count_rpc.sql`
+
+### 6B. Deep research upgrades
+- **Photography credit extraction** from og:image, figcaption, credit classes, Wikimedia Commons metadata
+- **Education extraction** for people — parses web pages for institution, degree, field, year using 50+ known architecture schools
+- **Confidence scoring (0.0–1.0)** — gates all writes; low-confidence results are skipped
+- **Tier-based entity selection** — `--tier top|mid|tail|all`
+- **New `image_credit` column** on firms/people/projects (migration `20260412000002_image_credits.sql`)
+- **Files:** `scrapers/deep_research.py` (upgraded)
+
+### 6C. Tiered enrichment orchestrator
+- **`scrapers/enrich_fleet.py`** — 4-stage pipeline:
+  - Stage 1: Drain enrichment queue via LLM (`enrich.py`)
+  - Stage 2: Deep web research for top-tier entities
+  - Stage 3: Web research for mid-tier (lower confidence threshold)
+  - Stage 4: Queue long-tail entities for LLM-only bios
+- Prints gap summary before/after each run
+
+### 6D. Researcher relevancy filter
+- **Problem:** OpenAlex ingest created ~5,688 researchers; ~20% were irrelevant to the built environment (LLM researchers, drug delivery, quantum computing, etc.)
+- **Fix:** `scripts/filter_researchers.py` classifies each researcher by matching linked source titles against relevancy keywords (architecture, fabrication, urbanism, materials, etc.) and irrelevancy keywords (medical, pure physics, telecom).
+- **Conservative:** Only flags researchers matching irrelevant keywords AND not matching any relevant keyword. Architecture-publication sources auto-qualify as relevant.
+- **Results:** 275 irrelevant researchers flagged to `draft` status (reversible), 4,898 relevant kept, 515 borderline kept for manual review.
+- **Report:** `scripts/researcher_filter_report.csv`
+
+### 6E. LLM enrichment run (Claude Haiku 4.5)
+- **Drained the enrichment queue** (~1,000 items from prior scraper runs)
+- **Long-tail Stage 4** — queued and enriched ~4,800 additional published people who had never been in the queue
+- **Coverage gain:** 214 → 5,859 people with bios (99% of published)
+- **Tags gain:** 164 → 5,771 unique tags, 405 → 34,231 entity-tag links
+- **Cost:** ~$12 total on Haiku 4.5 (~$0.002 per entity)
+- **Failures:** 11 entities remain without bios (edge cases where LLM returned empty responses)
+
+### 6F. Firm image extraction
+- **`scrapers/firm_images.py`** — extracts hero images from firm websites
+- Strategy: srcset → hero class → large img with size hints → og:image → twitter:image
+- CDN parameter bumping (`?width=800` → `?width=1600`)
+- Photography credit extraction
+- Filters: min 800px width, min 40KB, rejects thumbnails/favicons/logos/drupal-style paths
+- **Results (partial):** 7 → 31 firms with images. Architecture + design sectors complete (14 architecture firms → 4 images, 5 design firms → 3 images). Technology firms (1,434) batch interrupted.
+- **Hit rate:** ~30-40% for firms with functional websites; lower tail is fab labs/research institutes with outdated or JS-rendered sites
+
+### Final session metrics
+
+| Metric | Session start | Session end |
+|---|---|---|
+| Firms with description | 1,887 (92%) | 1,955 (95%) |
+| Firms with image | 7 (0.3%) | 31 (1.5%) |
+| People with bio | 214 (3.5%) | 5,859 (99%) |
+| Tags | 164 | 5,771 |
+| Entity-tag links | 405 | 34,231 |
+| Education records | 182 | 203 |
+| Published people | 6,145 | 5,870 (−275 irrelevant) |
+
+### Known gaps
+- **Firm images:** 2,015 firms still need images (most are technology/research labs with weak web presence). Strategy not yet extended to architecture publications (ArchDaily/Dezeen) which would give higher quality + photo credits.
+- **Person images:** ~5,860 people still missing images. Deep research via Wikimedia Commons is blocked by API rate-limiting from this environment.
+- **Borderline researchers (515):** Kept published but not validated. Would benefit from second-pass LLM classification.
+- **Projects:** Table exists but empty. No project/portfolio ingest pipeline yet.
+
+---
+
 ## Future Phases (from playbook Part II, not yet scheduled)
 
 These are valid future work items from the playbook (§19-§26) and research that are **not covered by Phases 1-5 above** but should be done eventually. Listed in recommended order.

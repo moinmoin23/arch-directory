@@ -144,6 +144,45 @@ export async function getRolesWithCounts(): Promise<
   return data ?? [];
 }
 
+export async function getPersonSourceCounts(personIds: string[]): Promise<Map<string, number>> {
+  if (personIds.length === 0) return new Map();
+  const supabase = createServerClient();
+  const { data, error } = await supabase.rpc("get_entity_source_counts", {
+    p_entity_ids: personIds,
+    p_entity_type: "person",
+  });
+
+  const map = new Map<string, number>();
+  if (error) {
+    console.error("[people.getPersonSourceCounts]", error.message, error.details);
+    return map;
+  }
+  for (const row of data ?? []) {
+    map.set(row.entity_id, Number(row.source_count));
+  }
+  return map;
+}
+
+export async function getPersonSources(personId: string) {
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("entity_sources")
+    .select("mention_type, sources(*)")
+    .eq("entity_id", personId)
+    .eq("entity_type", "person")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error("[people.getPersonSources]", error.message, error.details);
+    return [];
+  }
+
+  return (data ?? [])
+    .map((row) => row.sources)
+    .filter((s): s is Tables<"sources"> => s !== null);
+}
+
 export async function getPersonAwards(personId: string) {
   const supabase = createServerClient();
   const { data } = await supabase

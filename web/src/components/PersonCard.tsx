@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { PersonWithFirm } from "@/lib/queries/people";
 
-export function PersonCard({ person }: { person: PersonWithFirm }) {
+export function PersonCard({ person, sourceCount }: { person: PersonWithFirm; sourceCount?: number }) {
   return (
     <Link
       href={`/people/${person.slug}`}
@@ -25,10 +25,15 @@ export function PersonCard({ person }: { person: PersonWithFirm }) {
       {person.bio && (
         <p className="mt-2 text-sm text-muted line-clamp-2">{person.bio}</p>
       )}
-      <div className="mt-3">
+      <div className="mt-3 flex items-center gap-2">
         <span className="inline-block border border-border px-2 py-0.5 text-xs text-muted">
           {person.sector}
         </span>
+        {sourceCount != null && sourceCount > 0 && (
+          <span className="text-xs text-muted">
+            {sourceCount} {sourceCount === 1 ? "source" : "sources"}
+          </span>
+        )}
       </div>
     </div>
     </Link>

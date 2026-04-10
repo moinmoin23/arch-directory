@@ -400,6 +400,7 @@ export type Database = {
           display_name: string
           founded_year: number | null
           id: string
+          image_credit: string | null
           image_url: string | null
           last_seen_at: string | null
           latitude: number | null
@@ -427,6 +428,7 @@ export type Database = {
           display_name: string
           founded_year?: number | null
           id?: string
+          image_credit?: string | null
           image_url?: string | null
           last_seen_at?: string | null
           latitude?: number | null
@@ -454,6 +456,7 @@ export type Database = {
           display_name?: string
           founded_year?: number | null
           id?: string
+          image_credit?: string | null
           image_url?: string | null
           last_seen_at?: string | null
           latitude?: number | null
@@ -519,6 +522,7 @@ export type Database = {
           death_year: number | null
           display_name: string
           id: string
+          image_credit: string | null
           image_url: string | null
           last_seen_at: string | null
           nationality: string | null
@@ -543,6 +547,7 @@ export type Database = {
           death_year?: number | null
           display_name: string
           id?: string
+          image_credit?: string | null
           image_url?: string | null
           last_seen_at?: string | null
           nationality?: string | null
@@ -567,6 +572,7 @@ export type Database = {
           death_year?: number | null
           display_name?: string
           id?: string
+          image_credit?: string | null
           image_url?: string | null
           last_seen_at?: string | null
           nationality?: string | null
@@ -668,6 +674,7 @@ export type Database = {
           description: string | null
           display_name: string
           id: string
+          image_credit: string | null
           image_url: string | null
           latitude: number | null
           location: string | null
@@ -686,6 +693,7 @@ export type Database = {
           description?: string | null
           display_name: string
           id?: string
+          image_credit?: string | null
           image_url?: string | null
           latitude?: number | null
           location?: string | null
@@ -704,6 +712,7 @@ export type Database = {
           description?: string | null
           display_name?: string
           id?: string
+          image_credit?: string | null
           image_url?: string | null
           latitude?: number | null
           location?: string | null
@@ -852,6 +861,13 @@ export type Database = {
       daitch_mokotoff: { Args: { "": string }; Returns: string[] }
       dmetaphone: { Args: { "": string }; Returns: string }
       dmetaphone_alt: { Args: { "": string }; Returns: string }
+      get_entity_source_counts: {
+        Args: { p_entity_ids: string[]; p_entity_type: string }
+        Returns: {
+          entity_id: string
+          source_count: number
+        }[]
+      }
       get_people_letters: {
         Args: never
         Returns: {

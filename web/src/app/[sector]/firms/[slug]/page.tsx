@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getFirmBySlug, getFirmAliases, getFirmAwards } from "@/lib/queries/firms";
+import { getFirmBySlug, getFirmAliases, getFirmAwards, getFirmSources } from "@/lib/queries/firms";
+import { SourceList } from "@/components/SourceList";
 import { createServerClient } from "@/lib/supabase-server";
 
 export const revalidate = 3600;
@@ -86,19 +87,20 @@ export default async function FirmDetailPage({ params }: Props) {
   }
 
   const supabase2 = createServerClient();
-  const [aliases, awards, tagsResult] = await Promise.all([
+  const [aliases, awards, sources, tagsResult] = await Promise.all([
     getFirmAliases(firm.id),
     getFirmAwards(firm.id),
+    getFirmSources(firm.id),
     supabase2
       .from("entity_tags")
-      .select("tags(name)")
+      .select("tags(name, slug)")
       .eq("entity_id", firm.id)
       .eq("entity_type", "firm")
       .limit(10),
   ]);
   const tags = (tagsResult.data ?? [])
-    .map((et: any) => et.tags?.name)
-    .filter(Boolean) as string[];
+    .map((et: any) => et.tags ? { name: et.tags.name as string, slug: et.tags.slug as string } : null)
+    .filter((t): t is { name: string; slug: string } => t !== null);
 
   const location = [firm.city, firm.country].filter(Boolean).join(", ");
   const sectorPath = firm.sector === "multidisciplinary" ? "technology" : firm.sector;
@@ -174,12 +176,19 @@ export default async function FirmDetailPage({ params }: Props) {
 
       {/* Hero image */}
       {firm.image_url && (
-        <div className="w-full aspect-[21/9] bg-muted/10 overflow-hidden">
-          <img
-            src={firm.image_url}
-            alt={firm.display_name}
-            className="h-full w-full object-cover"
-          />
+        <div className="w-full">
+          <div className="aspect-[21/9] bg-muted/10 overflow-hidden">
+            <img
+              src={firm.image_url}
+              alt={firm.display_name}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          {firm.image_credit && (
+            <p className="px-6 py-1 text-xs text-muted text-right">
+              Photo: {firm.image_credit}
+            </p>
+          )}
         </div>
       )}
 
@@ -201,20 +210,9 @@ export default async function FirmDetailPage({ params }: Props) {
         </nav>
 
         {/* Header */}
-        <div className="flex items-center gap-4">
-          {firm.logo_url && (
-            <img
-              src={firm.logo_url}
-              alt=""
-              width={48}
-              height={48}
-              className="rounded"
-            />
-          )}
-          <h1 className="text-3xl font-bold tracking-tight">
-            {firm.display_name}
-          </h1>
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {firm.display_name}
+        </h1>
 
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
           <span className="border border-border px-2 py-0.5">{firm.sector}</span>
@@ -233,12 +231,13 @@ export default async function FirmDetailPage({ params }: Props) {
         {tags.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {tags.map((tag) => (
-              <span
-                key={tag}
-                className="border border-border px-2 py-0.5 text-xs text-muted"
+              <Link
+                key={tag.slug}
+                href={`/tags/${tag.slug}`}
+                className="border border-border px-2 py-0.5 text-xs text-muted hover:border-foreground hover:text-foreground transition-colors"
               >
-                {tag}
-              </span>
+                {tag.name}
+              </Link>
             ))}
           </div>
         )}
@@ -320,6 +319,9 @@ export default async function FirmDetailPage({ params }: Props) {
             </ul>
           </section>
         )}
+
+        {/* Sources & References */}
+        <SourceList sources={sources} />
       </div>
     </>
   );

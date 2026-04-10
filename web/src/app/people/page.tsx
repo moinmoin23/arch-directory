@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listPeople, getPeopleLetterCounts } from "@/lib/queries/people";
+import { listPeople, getPeopleLetterCounts, getPersonSourceCounts } from "@/lib/queries/people";
 import { PersonCard } from "@/components/PersonCard";
 import { Pagination } from "@/components/Pagination";
 import { AlphabetNav } from "@/components/AlphabetNav";
@@ -55,6 +55,8 @@ export default async function PeoplePage({
     listPeople({ page, perPage: PER_PAGE, letter, sector, sort }),
     getPeopleLetterCounts(),
   ]);
+
+  const sourceCounts = await getPersonSourceCounts(people.map((p) => p.id));
 
   const totalPages = Math.ceil(count / PER_PAGE);
 
@@ -183,7 +185,7 @@ export default async function PeoplePage({
       <section className="mt-8">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {people.map((person) => (
-            <PersonCard key={person.id} person={person} />
+            <PersonCard key={person.id} person={person} sourceCount={sourceCounts.get(person.id)} />
           ))}
         </div>
         {people.length === 0 && (

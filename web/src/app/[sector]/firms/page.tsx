@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listFirmsBySector, listFirmsBySectorAndCountry } from "@/lib/queries/firms";
+import { listFirmsBySector, listFirmsBySectorAndCountry, getFirmSourceCounts, getCountriesWithCounts } from "@/lib/queries/firms";
 import { FirmCard } from "@/components/FirmCard";
 import { Pagination } from "@/components/Pagination";
 import { FilterChips } from "@/components/FilterChips";
@@ -57,6 +57,11 @@ export default async function SectorFirmsPage({ params, searchParams }: Props) {
         perPage: PER_PAGE,
       });
 
+  const [sourceCounts, countries] = await Promise.all([
+    getFirmSourceCounts(firms.map((f) => f.id)),
+    getCountriesWithCounts(),
+  ]);
+
   const label = SECTOR_LABELS[sector as Sector];
   const totalPages = Math.ceil(count / PER_PAGE);
 
@@ -91,31 +96,38 @@ export default async function SectorFirmsPage({ params, searchParams }: Props) {
       />
 
       {/* Country filter */}
-      <div className="mt-4">
-        <form
-          action={`/${sector}/firms`}
-          method="GET"
-          className="flex items-center gap-3"
-        >
-          <label htmlFor="country-filter" className="text-xs text-muted">
-            Country
-          </label>
-          <input
-            id="country-filter"
-            type="text"
-            name="country"
-            defaultValue={country || ""}
-            placeholder="e.g. US, DE, JP"
-            className="border border-border bg-transparent px-3 py-1.5 text-sm placeholder:text-muted/60 focus:border-foreground focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="border border-border px-3 py-1.5 text-xs transition-colors hover:border-foreground"
+      {countries.length > 0 && (
+        <div className="mt-4">
+          <form
+            action={`/${sector}/firms`}
+            method="GET"
+            className="flex items-center gap-3"
           >
-            Filter
-          </button>
-        </form>
-      </div>
+            <label htmlFor="country-filter" className="text-xs text-muted">
+              Country
+            </label>
+            <select
+              id="country-filter"
+              name="country"
+              defaultValue={country || ""}
+              className="border border-border bg-transparent px-3 py-1.5 text-sm focus:border-foreground focus:outline-none"
+            >
+              <option value="">All countries</option>
+              {countries.map((c) => (
+                <option key={c.country} value={c.country}>
+                  {c.country} ({c.count})
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="border border-border px-3 py-1.5 text-xs transition-colors hover:border-foreground"
+            >
+              Filter
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Active filter chips */}
       {filters.length > 0 && (
@@ -128,7 +140,7 @@ export default async function SectorFirmsPage({ params, searchParams }: Props) {
       <section className="mt-8">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {firms.map((firm) => (
-            <FirmCard key={firm.id} firm={firm} />
+            <FirmCard key={firm.id} firm={firm} sourceCount={sourceCounts.get(firm.id)} />
           ))}
         </div>
         {firms.length === 0 && (

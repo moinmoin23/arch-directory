@@ -152,6 +152,25 @@ export async function getFirmSources(firmId: string) {
     .filter((s): s is Tables<"sources"> => s !== null);
 }
 
+export async function getFirmSourceCounts(firmIds: string[]): Promise<Map<string, number>> {
+  if (firmIds.length === 0) return new Map();
+  const supabase = createServerClient();
+  const { data, error } = await supabase.rpc("get_entity_source_counts", {
+    p_entity_ids: firmIds,
+    p_entity_type: "firm",
+  });
+
+  const map = new Map<string, number>();
+  if (error) {
+    console.error("[firms.getFirmSourceCounts]", error.message, error.details);
+    return map;
+  }
+  for (const row of data ?? []) {
+    map.set(row.entity_id, Number(row.source_count));
+  }
+  return map;
+}
+
 export async function getCountriesWithCounts(): Promise<
   { country: string; count: number }[]
 > {

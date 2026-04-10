@@ -5,7 +5,9 @@ import {
   getPersonBySlug,
   getPersonAwards,
   getPersonAliases,
+  getPersonSources,
 } from "@/lib/queries/people";
+import { SourceList } from "@/components/SourceList";
 import { createServerClient } from "@/lib/supabase-server";
 
 export const revalidate = 3600;
@@ -50,9 +52,10 @@ export default async function PersonDetailPage({ params }: Props) {
   if (!person) notFound();
 
   const supabase = createServerClient();
-  const [aliases, awards, educationResult, tagsResult] = await Promise.all([
+  const [aliases, awards, sources, educationResult, tagsResult] = await Promise.all([
     getPersonAliases(person.id),
     getPersonAwards(person.id),
+    getPersonSources(person.id),
     supabase
       .from("education")
       .select("institution_name, degree, field, start_year, end_year")
@@ -60,15 +63,15 @@ export default async function PersonDetailPage({ params }: Props) {
       .order("start_year", { ascending: false }),
     supabase
       .from("entity_tags")
-      .select("tags(name)")
+      .select("tags(name, slug)")
       .eq("entity_id", person.id)
       .eq("entity_type", "person")
       .limit(10),
   ]);
   const education = educationResult.data ?? [];
   const tags = (tagsResult.data ?? [])
-    .map((et: any) => et.tags?.name)
-    .filter(Boolean) as string[];
+    .map((et: any) => et.tags ? { name: et.tags.name as string, slug: et.tags.slug as string } : null)
+    .filter((t): t is { name: string; slug: string } => t !== null);
 
   const firm = person.firms;
   const firmSectorPath =
@@ -142,11 +145,18 @@ export default async function PersonDetailPage({ params }: Props) {
         {/* Header */}
         <div className="flex items-start gap-6">
           {person.image_url && (
-            <img
-              src={person.image_url}
-              alt={person.display_name}
-              className="h-24 w-24 rounded-full object-cover flex-shrink-0"
-            />
+            <div className="flex-shrink-0">
+              <img
+                src={person.image_url}
+                alt={person.display_name}
+                className="h-24 w-24 rounded-full object-cover"
+              />
+              {person.image_credit && (
+                <p className="mt-1 text-[10px] text-muted text-center">
+                  {person.image_credit}
+                </p>
+              )}
+            </div>
           )}
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
@@ -194,12 +204,13 @@ export default async function PersonDetailPage({ params }: Props) {
         {tags.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {tags.map((tag) => (
-              <span
-                key={tag}
-                className="border border-border px-2 py-0.5 text-xs text-muted"
+              <Link
+                key={tag.slug}
+                href={`/tags/${tag.slug}`}
+                className="border border-border px-2 py-0.5 text-xs text-muted hover:border-foreground hover:text-foreground transition-colors"
               >
-                {tag}
-              </span>
+                {tag.name}
+              </Link>
             ))}
           </div>
         )}
@@ -268,6 +279,9 @@ export default async function PersonDetailPage({ params }: Props) {
             </ul>
           </section>
         )}
+
+        {/* Sources & References */}
+        <SourceList sources={sources} />
       </div>
     </>
   );

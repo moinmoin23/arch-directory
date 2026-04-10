@@ -35,5 +35,9 @@ build/
 # Supabase local
 supabase/.temp/
 
+# Runtime artifacts / reports
+scripts/audit-report.json
+scripts/researcher_filter_report.csv
+
 # Typesense
 /tmp/typesense-data/
